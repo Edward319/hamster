@@ -1,0 +1,9 @@
+{
+  "name": "vibecoding",
+  "version": "1.0.0",
+  "description": "存货小管家 — 保质期与库存管理",
+  "private": true,
+  "dependencies": {
+    "resend": "^4.0.0"
+  }
+}
