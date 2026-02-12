@@ -1,9 +1,8 @@
 /**
  * Notion 同步：仅与用户自己的 Notion 通信，通过 /api/notion-proxy 转发，代理不存储任何数据。
  * 数据仅存在于用户 Notion 与浏览器内存/本地缓存。
+ * 提前提醒天数默认值复用 data.js 中的 DEFAULT_REMIND_DAYS。
  */
-
-const DEFAULT_REMIND_DAYS = 30;
 
 function getProxyUrl() {
   const origin = typeof window !== "undefined" && window.location && window.location.origin;

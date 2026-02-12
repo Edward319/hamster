@@ -536,7 +536,7 @@
     });
   }
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const id = document.getElementById("item-id").value;
     const existing = id ? getAllItems().find((i) => i.id === id) : null;
