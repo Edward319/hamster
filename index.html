@@ -105,10 +105,29 @@
               <label for="setting-notify-email">通知邮箱</label>
               <input type="email" id="setting-notify-email" placeholder="接收提醒的邮箱地址" />
             </div>
-            <div class="settings-group-label">数据</div>
+            <div class="settings-group-label">数据 · Notion 同步</div>
             <div class="setting-item">
-              <label>数据存储</label>
-              <span class="setting-desc">当前：本地存储 · Notion 同步（开发中）</span>
+              <label>
+                <input type="checkbox" id="setting-notion-sync" />
+                启用 Notion 同步（数据存入你的 Notion）
+              </label>
+              <span class="setting-desc">勾选后，应用会改为把数据保存到你自己的 Notion 数据库；本应用服务器不保留任何数据。第一次使用会弹出一步步小指南。</span>
+            </div>
+            <div class="setting-item setting-notion-fields">
+              <label for="setting-notion-token">Notion 集成密钥（Secret）</label>
+              <input type="password" id="setting-notion-token" placeholder="secret_xxx" autocomplete="off" />
+              <span class="setting-desc">第 1 步：在浏览器打开 notion.so/my-integrations，创建一个「内部集成」，复制其中的 Secret 粘贴到这里。这个密钥只保存在你这台设备，不会上传到服务器。</span>
+            </div>
+            <div class="setting-item setting-notion-fields">
+              <label for="setting-notion-database-id">Notion 数据库 ID</label>
+              <input type="text" id="setting-notion-database-id" placeholder="数据库 URL 中的 32 位 id" autocomplete="off" />
+              <span class="setting-desc">第 3 步：在 Notion 中打开你用于存货的数据库，把该数据库「连接」到上面的集成，然后从数据库页面 URL 中复制那段 32 位 ID 粘贴到这里。</span>
+            </div>
+            <div class="setting-item setting-notion-fields">
+              <label for="setting-notion-parent-page-id">或创建新数据库：父页面 ID</label>
+              <input type="text" id="setting-notion-parent-page-id" placeholder="先共享该页面给集成，再粘贴页面 id" autocomplete="off" />
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-notion-create-db">创建「存货小管家」数据库</button>
+              <span class="setting-desc" id="notion-create-db-status">如果你不想自己建表，可以：在 Notion 新建一个普通页面 → 右上角「连接」到集成 → 把该页面 URL 里的 ID 粘到这里 → 点上面的按钮，应用会帮你在该页面下创建一个结构已匹配好的库存数据库。</span>
             </div>
             <div class="settings-group-label">AI 管家</div>
             <div class="setting-item">
@@ -230,7 +249,48 @@
     </div>
   </div>
 
+  <!-- Notion 同步新手引导 -->
+  <div id="modal-notion-guide" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" id="modal-notion-guide-close"></div>
+    <div class="modal-content">
+      <div class="form-card-header">
+        <h2>Notion 同步 · 第一次怎么连？</h2>
+        <button type="button" class="btn-close" id="modal-notion-guide-close-btn" aria-label="关闭">×</button>
+      </div>
+      <div class="item-form">
+        <ol class="notion-guide-steps">
+          <li>
+            <strong>在 Notion 里创建一个集成（只属于你）：</strong><br />
+            打开 <code>notion.so/my-integrations</code> → 新建「内部集成」→ 复制 Secret（以 <code>secret_</code> 开头）备用。
+          </li>
+          <li>
+            <strong>给集成一个「家」页面：</strong><br />
+            在 Notion 新建一个普通页面（比如叫「存货」）→ 右上角点「连接」/「添加连接」→ 选择刚才的集成，把这个页面连给它。
+          </li>
+          <li>
+            <strong>在应用里填密钥并创建数据库：</strong><br />
+            回到本页面，在「Notion 集成密钥」里粘贴 <code>secret_...</code>；<br />
+            打开刚才那个「存货」页面，从浏览器地址栏复制最后那段 32 位 ID（中间带不带横线都可以），粘到「父页面 ID」；<br />
+            点击「创建『存货小管家』数据库」，看到成功提示后，「Notion 数据库 ID」会自动填好。
+          </li>
+          <li>
+            <strong>开始使用：</strong><br />
+            确认「启用 Notion 同步」已勾选 → 回到「库存」页面试着新增几条 → 打开 Notion 里的数据库，确认记录已经写入你的 Notion。
+          </li>
+        </ol>
+        <p class="notion-guide-tip">
+          小贴士：每个用户都可以用自己的 Notion 集成和数据库配置这一块，<br />
+          数据只会写入各自的 Notion，本应用服务器不会保存任何库存内容。
+        </p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" id="modal-notion-guide-ok">我知道啦</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/data.js"></script>
+  <script src="js/notion-sync.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -8,8 +8,11 @@ const STORAGE_CATEGORIES = "vibecoding_categories";
 const STORAGE_SETTINGS = "vibecoding_settings";
 const DEFAULT_REMIND_DAYS = 30;
 
-/** 读取所有货物（兼容旧数据：补全 remindBeforeDays，used_up 无 usedUpAt 的保留不删） */
+/** 读取所有货物（Notion 同步开启时从内存缓存读，否则从 localStorage；兼容旧数据） */
 function getAllItems() {
+  if (isNotionSyncEnabled()) {
+    return getNotionCache().slice();
+  }
   try {
     const raw = localStorage.getItem(STORAGE_ITEMS);
     const items = raw ? JSON.parse(raw) : [];
@@ -48,14 +51,14 @@ function nextId() {
   return "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
 }
 
-/** 归一化一条记录（含 remindBeforeDays、usedUpAt） */
+/** 归一化一条记录（含 remindBeforeDays、usedUpAt；保留 notionPageId 供同步用） */
 function normalizeRecord(item) {
   const status = item.status === "used_up" ? "used_up" : "in_stock";
   const usedUpAt =
     status === "used_up"
       ? (item.usedUpAt || new Date().toISOString().slice(0, 10))
       : undefined;
-  return {
+  const out = {
     id: item.id || nextId(),
     name: String(item.name).trim(),
     category1: String(item.category1).trim(),
@@ -70,6 +73,8 @@ function normalizeRecord(item) {
     remindBeforeDays: typeof item.remindBeforeDays === "number" ? item.remindBeforeDays : DEFAULT_REMIND_DAYS,
     usedUpAt,
   };
+  if (item.notionPageId) out.notionPageId = item.notionPageId;
+  return out;
 }
 
 /**
@@ -102,10 +107,9 @@ function mergeIdenticalItems() {
 }
 
 /**
- * 新增或更新一条货物（保存后执行底层合并）
+ * 新增或更新一条货物（Notion 同步时写 Notion 并更新缓存，否则写 localStorage 并合并）
  */
-function saveItem(item) {
-  let items = getAllItems();
+async function saveItemAsync(item) {
   const record = normalizeRecord({
     ...item,
     id: item.id,
@@ -114,29 +118,65 @@ function saveItem(item) {
   });
   saveCategory(record.category1, record.category2);
 
-  const idx = items.findIndex((i) => i.id === record.id);
-  if (idx >= 0) {
-    items[idx] = record;
-  } else {
-    items.push(record);
+  if (isNotionSyncEnabled() && typeof createNotionPage !== "undefined" && typeof updateNotionPage !== "undefined") {
+    const s = getSettings();
+    const cache = getNotionCache();
+    const idx = cache.findIndex((i) => i.id === record.id || (i.notionPageId && i.notionPageId === record.notionPageId));
+    try {
+      if (record.notionPageId && idx >= 0) {
+        await updateNotionPage(s.notionToken, record.notionPageId, record);
+        const out = { ...record, notionPageId: record.notionPageId };
+        cache[idx] = out;
+        setNotionCache(cache);
+        return out;
+      }
+      const pageId = await createNotionPage(s.notionToken, s.notionDatabaseId, record);
+      const newRecord = { ...record, id: record.id || pageId, notionPageId: pageId };
+      if (idx >= 0) cache[idx] = newRecord;
+      else cache.push(newRecord);
+      setNotionCache(cache);
+      return newRecord;
+    } catch (e) {
+      throw e;
+    }
   }
+
+  let items = getAllItems();
+  const i = items.findIndex((x) => x.id === record.id);
+  if (i >= 0) items[i] = record;
+  else items.push(record);
   saveAllItems(items);
   mergeIdenticalItems();
   return record;
 }
 
-function deleteItem(id) {
+function saveItem(item) {
+  return saveItemAsync(item);
+}
+
+async function deleteItemAsync(id) {
+  if (isNotionSyncEnabled() && typeof archiveNotionPage !== "undefined") {
+    const s = getSettings();
+    const cache = getNotionCache();
+    const one = cache.find((i) => i.id === id || i.notionPageId === id);
+    if (one && one.notionPageId) {
+      await archiveNotionPage(s.notionToken, one.notionPageId);
+      setNotionCache(cache.filter((i) => i.id !== id && i.notionPageId !== id));
+      return;
+    }
+  }
   const items = getAllItems().filter((i) => i.id !== id);
   saveAllItems(items);
 }
 
+function deleteItem(id) {
+  return deleteItemAsync(id);
+}
+
 /**
- * 用完了：更新原条在库数量，并新建一条「已使用完」记录
- * - 原条：quantity 减去本次使用量，若剩余 ≤0 则置为 0 且 status=used_up
- * - 新建：同 SKU+到期日，quantity=本次使用量，status=used_up，usedUpAt=今日
- * 合并时按「同一 SKU+到期日+同一状态」合并，在库与已使用完分开
+ * 用完了：更新原条在库数量，并新建一条「已使用完」记录（Notion 同步时写 Notion 并更新缓存）
  */
-function useQuantity(id, usedQuantity) {
+async function useQuantityAsync(id, usedQuantity) {
   const items = getAllItems();
   const one = items.find((i) => i.id === id);
   if (!one || one.status !== "in_stock") return null;
@@ -144,14 +184,12 @@ function useQuantity(id, usedQuantity) {
   if (used <= 0) return one;
 
   const today = new Date().toISOString().slice(0, 10);
-
-  one.quantity -= used;
-  if (one.quantity <= 0) {
-    one.quantity = 0;
-    one.status = "used_up";
-    one.usedUpAt = today;
+  const updated = { ...one, quantity: one.quantity - used };
+  if (updated.quantity <= 0) {
+    updated.quantity = 0;
+    updated.status = "used_up";
+    updated.usedUpAt = today;
   }
-
   const newRecord = {
     id: nextId(),
     name: one.name,
@@ -167,14 +205,40 @@ function useQuantity(id, usedQuantity) {
     usedUpAt: today,
     remindBeforeDays: one.remindBeforeDays,
   };
+
+  if (isNotionSyncEnabled() && typeof updateNotionPage !== "undefined" && typeof createNotionPage !== "undefined") {
+    const s = getSettings();
+    const cache = getNotionCache().slice();
+    const idx = cache.findIndex((i) => i.id === id || i.notionPageId === id);
+    if (idx >= 0) {
+      await updateNotionPage(s.notionToken, cache[idx].notionPageId, updated);
+      cache[idx] = { ...updated, id: cache[idx].id, notionPageId: cache[idx].notionPageId };
+    }
+    const pageId = await createNotionPage(s.notionToken, s.notionDatabaseId, newRecord);
+    cache.push({ ...newRecord, notionPageId: pageId });
+    setNotionCache(cache);
+    return updated;
+  }
+
+  one.quantity -= used;
+  if (one.quantity <= 0) {
+    one.quantity = 0;
+    one.status = "used_up";
+    one.usedUpAt = today;
+  }
   items.push(newRecord);
   saveAllItems(items);
   mergeIdenticalItems();
   return one;
 }
 
-/** 删除已使用完且超过 2 个月的数据，节省空间（用本地日期算 2 个月前，避免时区问题） */
+function useQuantity(id, usedQuantity) {
+  return useQuantityAsync(id, usedQuantity);
+}
+
+/** 删除已使用完且超过 2 个月的数据，节省空间（Notion 同步开启时不清理，避免误动远程数据） */
 function purgeUsedUpOlderThanTwoMonths() {
+  if (isNotionSyncEnabled()) return 0;
   const items = getAllItems();
   const d = new Date();
   d.setMonth(d.getMonth() - 2);
@@ -397,7 +461,7 @@ function getFutureMonthExpiringByCategory1() {
   }));
 }
 
-/** 设置：提醒周期(天)、通知邮箱 */
+/** 设置：提醒周期(天)、通知邮箱、Notion 同步 */
 function getSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_SETTINGS);
@@ -405,14 +469,67 @@ function getSettings() {
     return {
       remindCycleDays: typeof o.remindCycleDays === "number" ? o.remindCycleDays : 7,
       notifyEmail: String(o.notifyEmail || "").trim(),
+      notionSync: !!o.notionSync,
+      notionToken: String(o.notionToken || "").trim(),
+      notionDatabaseId: String(o.notionDatabaseId || "").trim(),
     };
   } catch {
-    return { remindCycleDays: 7, notifyEmail: "" };
+    return { remindCycleDays: 7, notifyEmail: "", notionSync: false, notionToken: "", notionDatabaseId: "" };
   }
 }
 
 function saveSettings(settings) {
   localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(settings));
+}
+
+/** Notion 同步开启时使用的内存缓存（数据仅存用户 Notion，此处仅当次会话缓存） */
+let notionCache = [];
+let notionCacheReady = false;
+
+function isNotionSyncEnabled() {
+  const s = getSettings();
+  return !!(s.notionSync && s.notionToken && s.notionDatabaseId);
+}
+
+function getNotionCache() {
+  return notionCache;
+}
+
+function setNotionCache(items) {
+  notionCache = items || [];
+  notionCacheReady = true;
+}
+
+function clearNotionCache() {
+  notionCache = [];
+  notionCacheReady = false;
+}
+
+/** 是否已加载过 Notion 缓存（用于显示加载中） */
+function isNotionCacheLoaded() {
+  return notionCacheReady;
+}
+
+/**
+ * 从用户 Notion 拉取数据并写入缓存（仅当次请求经服务器代理，代理不存储）
+ */
+async function loadNotionCache() {
+  const s = getSettings();
+  if (!s.notionSync || !s.notionToken || !s.notionDatabaseId) {
+    setNotionCache([]);
+    return;
+  }
+  if (typeof fetchAllFromNotion !== "function") {
+    setNotionCache([]);
+    return;
+  }
+  try {
+    const items = await fetchAllFromNotion(s.notionToken, s.notionDatabaseId);
+    setNotionCache(items);
+  } catch {
+    setNotionCache([]);
+    throw new Error("拉取 Notion 数据失败，请检查集成与数据库 ID");
+  }
 }
 
 /**

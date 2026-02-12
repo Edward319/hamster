@@ -117,6 +117,11 @@ body::before {
   transform: scale(0.98);
 }
 
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 .btn-primary {
   background: var(--color-accent);
   color: #fff;
@@ -924,6 +929,33 @@ body::before {
 
 .copy-item:hover {
   background: var(--color-accent-soft);
+}
+
+/* Notion 同步引导 */
+.notion-guide-steps {
+  padding-left: 20px;
+  margin: 12px 0 4px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.notion-guide-steps li {
+  margin-bottom: 10px;
+}
+
+.notion-guide-steps code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.notion-guide-tip {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 .copy-item:last-child {

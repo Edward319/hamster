@@ -1,9 +1,11 @@
 /**
- * Vercel Serverless：接收今日报告内容，用 Resend 发送邮件
+ * Vercel Serverless：接收今日报告内容，发送邮件
+ * 优先使用 Gmail SMTP（零成本、可发任意收件人）；未配置则用 Resend。
  * POST /api/send-report  Body: { to: string, report: { urging, expiring[], summaryNew[], summaryUsed[] } }
  */
 
 const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
 function buildEmailHtml(report) {
   const { urging = "", expiring = [], summaryNew = [], summaryUsed = [] } = report;
@@ -86,11 +88,16 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: "请使用 POST" });
   }
 
+  const smtpUser = (process.env.SMTP_USER || "").trim();
+  const smtpPass = (process.env.SMTP_PASS || "").trim();
+  const useGmail = smtpUser && smtpPass;
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM || "存货小管家 <onboarding@resend.dev>";
 
-  if (!apiKey) {
-    return res.status(500).json({ error: "未配置 RESEND_API_KEY，请在 Vercel 环境变量中设置" });
+  if (!useGmail && !apiKey) {
+    return res.status(500).json({
+      error: "请配置发信方式：在 Vercel 环境变量中设置 SMTP_USER + SMTP_PASS（Gmail 零成本），或 RESEND_API_KEY（Resend）",
+    });
   }
 
   let body;
@@ -108,13 +115,31 @@ module.exports = async (req, res) => {
   }
 
   const html = buildEmailHtml(report);
-  const resend = new Resend(apiKey);
+  const subject = "今日报告 — 存货小管家";
 
   try {
+    if (useGmail) {
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: { user: smtpUser, pass: smtpPass },
+      });
+      const from = fromEmail.includes("<") ? fromEmail : `存货小管家 <${smtpUser}>`;
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+      });
+      return res.status(200).json({ success: true, id: info.messageId });
+    }
+
+    const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: [to],
-      subject: "今日报告 — 存货小管家",
+      subject,
       html,
     });
     if (error) {

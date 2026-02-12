@@ -25,11 +25,30 @@
   const useCancel = document.getElementById("use-cancel");
   const modalUseClose = document.getElementById("modal-use-close");
   const modalUseCloseBtn = document.getElementById("modal-use-close-btn");
+  const modalNotionGuide = document.getElementById("modal-notion-guide");
+  const modalNotionGuideClose = document.getElementById("modal-notion-guide-close");
+  const modalNotionGuideCloseBtn = document.getElementById("modal-notion-guide-close-btn");
+  const modalNotionGuideOk = document.getElementById("modal-notion-guide-ok");
 
   let currentInventoryStatus = "in_stock";
   let useTargetId = null;
 
-  function showView(viewName) {
+  async function showView(viewName) {
+    if (
+      (viewName === "home" || viewName === "inventory") &&
+      typeof isNotionSyncEnabled === "function" &&
+      isNotionSyncEnabled() &&
+      typeof isNotionCacheLoaded === "function" &&
+      !isNotionCacheLoaded() &&
+      typeof loadNotionCache === "function"
+    ) {
+      try {
+        await loadNotionCache();
+      } catch (e) {
+        console.error(e);
+        alert(e.message || "拉取 Notion 数据失败");
+      }
+    }
     views.forEach((v) => v.classList.toggle("view-active", v.dataset.view === viewName));
     navItems.forEach((n) => n.classList.toggle("active", n.dataset.nav === viewName));
     if (viewName === "home") renderHome();
@@ -38,7 +57,11 @@
     if (viewName === "settings") renderSettings();
   }
 
-  navItems.forEach((btn) => btn.addEventListener("click", () => showView(btn.dataset.nav)));
+  navItems.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      showView(btn.dataset.nav);
+    })
+  );
 
   // ---------- 首页：今日提醒（拟人化催促文案）+ 双周报 ----------
   function getUrgingText(count) {
@@ -334,20 +357,36 @@
     useTargetId = null;
   }
 
-  useConfirm.addEventListener("click", () => {
+  useConfirm.addEventListener("click", async () => {
     if (!useTargetId) return;
     const val = parseFloat(useQuantityInput.value, 10);
     if (Number.isNaN(val)) return;
     const item = getAllItems().find((i) => i.id === useTargetId);
     if (!item || val <= 0 || val > item.quantity) return;
-    useQuantity(useTargetId, val);
-    closeUseModal();
-    showStamp("已使用");
-    renderInventory();
+    try {
+      await useQuantity(useTargetId, val);
+      closeUseModal();
+      showStamp("已使用");
+      renderInventory();
+    } catch (err) {
+      alert(err.message || "操作失败");
+    }
   });
   useCancel.addEventListener("click", closeUseModal);
   modalUseClose.addEventListener("click", closeUseModal);
   modalUseCloseBtn.addEventListener("click", closeUseModal);
+
+  function openNotionGuide() {
+    if (!modalNotionGuide) return;
+    modalNotionGuide.classList.remove("hidden");
+    modalNotionGuide.setAttribute("aria-hidden", "false");
+  }
+
+  function closeNotionGuide() {
+    if (!modalNotionGuide) return;
+    modalNotionGuide.classList.add("hidden");
+    modalNotionGuide.setAttribute("aria-hidden", "true");
+  }
 
   function onEdit(e) {
     e.stopPropagation();
@@ -357,12 +396,16 @@
     openForm(item);
   }
 
-  function onDelete(e) {
+  async function onDelete(e) {
     e.stopPropagation();
     const id = e.target.closest("tr").dataset.id;
     if (!id || !confirm("确定删除这条记录吗？（仅用于录错）")) return;
-    deleteItem(id);
-    renderInventory();
+    try {
+      await deleteItem(id);
+      renderInventory();
+    } catch (err) {
+      alert(err.message || "删除失败");
+    }
   }
 
   function showStamp(text) {
@@ -499,6 +542,7 @@
     const existing = id ? getAllItems().find((i) => i.id === id) : null;
     const payload = {
       id: id || undefined,
+      notionPageId: existing && existing.notionPageId,
       status: existing ? existing.status : "in_stock",
       name: document.getElementById("item-name").value.trim(),
       category1: document.getElementById("item-category1").value.trim(),
@@ -511,10 +555,14 @@
       note: document.getElementById("item-note").value.trim(),
       remindBeforeDays: parseInt(document.getElementById("item-remind-days").value, 10) || 30,
     };
-    saveItem(payload);
-    closeForm();
-    showStamp("已登记");
-    renderInventory();
+    try {
+      await saveItem(payload);
+      closeForm();
+      showStamp("已登记");
+      renderInventory();
+    } catch (err) {
+      alert(err.message || "保存失败");
+    }
   });
 
   btnAdd.addEventListener("click", () => openForm(null));
@@ -522,18 +570,44 @@
   modalClose.addEventListener("click", closeForm);
   formCancel.addEventListener("click", closeForm);
 
-  // ---------- 设置：提醒周期、通知邮箱（保存到 localStorage）----------
+  // ---------- 设置：提醒周期、通知邮箱、Notion 同步 ----------
   function renderSettings() {
     const s = getSettings();
     const cycleEl = document.getElementById("setting-remind-cycle");
     const emailEl = document.getElementById("setting-notify-email");
+    const notionSyncEl = document.getElementById("setting-notion-sync");
+    const notionTokenEl = document.getElementById("setting-notion-token");
+    const notionDbIdEl = document.getElementById("setting-notion-database-id");
+    const notionParentEl = document.getElementById("setting-notion-parent-page-id");
     if (cycleEl) cycleEl.value = String(s.remindCycleDays);
     if (emailEl) emailEl.value = s.notifyEmail || "";
+    if (notionSyncEl) notionSyncEl.checked = !!s.notionSync;
+    if (notionTokenEl) notionTokenEl.value = s.notionToken || "";
+    if (notionDbIdEl) notionDbIdEl.value = s.notionDatabaseId || "";
+    if (notionParentEl) notionParentEl.value = "";
+    const statusEl = document.getElementById("notion-create-db-status");
+    if (statusEl) statusEl.textContent = "";
   }
 
   (function initSettingsListeners() {
     const cycleEl = document.getElementById("setting-remind-cycle");
     const emailEl = document.getElementById("setting-notify-email");
+    const notionSyncEl = document.getElementById("setting-notion-sync");
+    const notionTokenEl = document.getElementById("setting-notion-token");
+    const notionDbIdEl = document.getElementById("setting-notion-database-id");
+    const btnCreateDb = document.getElementById("btn-notion-create-db");
+    const notionParentEl = document.getElementById("setting-notion-parent-page-id");
+    const statusEl = document.getElementById("notion-create-db-status");
+
+    function saveNotionSettings() {
+      const s = getSettings();
+      s.notionSync = notionSyncEl ? notionSyncEl.checked : false;
+      s.notionToken = notionTokenEl ? (notionTokenEl.value || "").trim() : "";
+      s.notionDatabaseId = notionDbIdEl ? (notionDbIdEl.value || "").trim() : "";
+      saveSettings(s);
+      if (typeof clearNotionCache === "function") clearNotionCache();
+    }
+
     if (cycleEl) {
       cycleEl.addEventListener("change", () => {
         const s = getSettings();
@@ -548,6 +622,43 @@
         saveSettings(s);
       });
     }
+    if (notionSyncEl) {
+      notionSyncEl.addEventListener("change", () => {
+        const before = !!getSettings().notionSync;
+        saveNotionSettings();
+        const after = !!getSettings().notionSync;
+        // 第一次从未开启切换到开启时，弹出新手引导
+        if (!before && after) {
+          openNotionGuide();
+        }
+      });
+    }
+    if (notionTokenEl) notionTokenEl.addEventListener("blur", saveNotionSettings);
+    if (notionDbIdEl) notionDbIdEl.addEventListener("blur", saveNotionSettings);
+
+    if (btnCreateDb && notionParentEl && notionTokenEl && notionDbIdEl && statusEl && typeof createNotionDatabase === "function") {
+      btnCreateDb.addEventListener("click", async () => {
+        const token = (notionTokenEl.value || "").trim();
+        const parentId = (notionParentEl.value || "").trim().replace(/-/g, "");
+        if (!token || !parentId) {
+          statusEl.textContent = "请先填写集成密钥和父页面 ID，并确保该页面已共享给集成。";
+          return;
+        }
+        statusEl.textContent = "创建中…";
+        try {
+          const databaseId = await createNotionDatabase(token, parentId);
+          notionDbIdEl.value = databaseId;
+          saveNotionSettings();
+          statusEl.textContent = "已创建，请在该数据库中点击「连接」并选择你的集成。";
+        } catch (e) {
+          statusEl.textContent = e.message || "创建失败";
+        }
+      });
+    }
+
+    if (modalNotionGuideClose) modalNotionGuideClose.addEventListener("click", closeNotionGuide);
+    if (modalNotionGuideCloseBtn) modalNotionGuideCloseBtn.addEventListener("click", closeNotionGuide);
+    if (modalNotionGuideOk) modalNotionGuideOk.addEventListener("click", closeNotionGuide);
   })();
 
   function escapeHtml(s) {
