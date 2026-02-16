@@ -25,11 +25,6 @@
   const useCancel = document.getElementById("use-cancel");
   const modalUseClose = document.getElementById("modal-use-close");
   const modalUseCloseBtn = document.getElementById("modal-use-close-btn");
-  const modalNotionGuide = document.getElementById("modal-notion-guide");
-  const modalNotionGuideClose = document.getElementById("modal-notion-guide-close");
-  const modalNotionGuideCloseBtn = document.getElementById("modal-notion-guide-close-btn");
-  const modalNotionGuideOk = document.getElementById("modal-notion-guide-ok");
-
   let currentInventoryStatus = "in_stock";
   let useTargetId = null;
 
@@ -82,30 +77,42 @@
     if (items.length === 0) {
       emptyMsg.classList.remove("hidden");
       emptyMsg.textContent = "今天没有快过期的东西，真棒！";
+      list.innerHTML = "";
     } else {
       const text = getUrgingText(items.length);
       if (text) {
         urgingMsg.textContent = text;
         urgingMsg.classList.remove("hidden");
       }
-      items.forEach((i) => {
-        const li = document.createElement("li");
-        li.innerHTML =
-          '<span class="item-name">' +
-          escapeHtml(i.name) +
-          "</span>" +
-          '<span class="item-meta">' +
-          escapeHtml(i.brand) +
-          " · " +
-          escapeHtml(i.category1) +
-          "/" +
-          escapeHtml(i.category2) +
-          " · 到期 " +
-          escapeHtml(i.expiryDate) +
-          (i.remindBeforeDays ? "（提前 " + i.remindBeforeDays + " 天提醒）" : "") +
-          "</span>";
-        list.appendChild(li);
-      });
+      list.innerHTML =
+        '<table class="expiring-table" aria-label="即将到期物品">' +
+        '<thead><tr><th>物品</th><th>品牌</th><th>品类</th><th>到期</th><th>提前提醒</th></tr></thead>' +
+        '<tbody>' +
+        items
+          .map(
+            (i) =>
+              "<tr>" +
+              "<td class=\"col-name\">" +
+              escapeHtml(i.name) +
+              "</td>" +
+              "<td class=\"col-brand\">" +
+              escapeHtml(i.brand) +
+              "</td>" +
+              "<td class=\"col-cat\">" +
+              escapeHtml(i.category1) +
+              " / " +
+              escapeHtml(i.category2) +
+              "</td>" +
+              "<td class=\"col-expiry\">" +
+              escapeHtml(i.expiryDate) +
+              "</td>" +
+              "<td class=\"col-remind\">" +
+              (i.remindBeforeDays ? escapeHtml(String(i.remindBeforeDays)) + " 天" : "—") +
+              "</td>" +
+              "</tr>"
+          )
+          .join("") +
+        "</tbody></table>";
     }
     renderBiweekly();
   }
@@ -173,13 +180,29 @@
   const btnSendReport = document.getElementById("btn-send-report");
   if (btnSendReport) btnSendReport.addEventListener("click", sendReportToEmail);
 
-  function renderBiweekly() {
-    const past = getPastMonthStatsByCategory1();
-    renderBiweeklyBlock("biweekly-new", "进货", past.newEntries);
-    renderBiweeklyBlock("biweekly-used", "消耗", past.used);
+  /** 按 物品+品牌+二级品类 合并，汇总总价；不包含过期日 */
+  function mergeItemsByKey(items, isUsed) {
+    const map = new Map();
+    items.forEach((i) => {
+      const key = (i.name || "") + "\n" + (i.brand || "") + "\n" + (i.category2 || "");
+      const price = rowTotalPrice(i, !!isUsed);
+      if (!map.has(key)) map.set(key, { name: i.name || "", brand: i.brand || "", category2: i.category2 || "", totalPrice: 0 });
+      const row = map.get(key);
+      row.totalPrice += price;
+    });
+    return Array.from(map.values()).map((r) => ({ ...r, totalPrice: Math.round(r.totalPrice * 100) / 100 }));
   }
 
-  function renderBiweeklyBlock(containerId, title, list) {
+  function renderBiweekly() {
+    const weeks = getSettings().summaryWeeks || 4;
+    const periodHint = document.getElementById("biweekly-period-hint");
+    if (periodHint) periodHint.textContent = "统计周期：过去 " + weeks + " 周";
+    const past = getPastMonthStatsByCategory1();
+    renderBiweeklyBlock("biweekly-new", "进货", past.newEntries, false);
+    renderBiweeklyBlock("biweekly-used", "消耗", past.used, true);
+  }
+
+  function renderBiweeklyBlock(containerId, title, list, isUsed) {
     const el = document.getElementById(containerId);
     if (!el) return;
     if (!list || list.length === 0) {
@@ -189,6 +212,19 @@
     let html = "<h3 class=\"biweekly-subtitle\">" + escapeHtml(title) + "</h3>";
     list.forEach((g, idx) => {
       const id = containerId + "-cat-" + idx;
+      const rows = mergeItemsByKey(g.items, isUsed);
+      const tableBody =
+        rows
+          .map(
+            (r) =>
+              "<tr>" +
+              "<td class=\"biweekly-col-name\">" + escapeHtml(r.name) + "</td>" +
+              "<td class=\"biweekly-col-meta\">" + escapeHtml(r.brand) + "</td>" +
+              "<td class=\"biweekly-col-meta\">" + escapeHtml(r.category2) + "</td>" +
+              "<td class=\"biweekly-col-price\">¥" + r.totalPrice + "</td>" +
+              "</tr>"
+          )
+          .join("") || "";
       html +=
         "<div class=\"biweekly-cat\">" +
         "<button type=\"button\" class=\"biweekly-cat-btn\" data-id=\"" + id + "\" aria-expanded=\"false\">" +
@@ -196,14 +232,9 @@
         "<span class=\"biweekly-cat-price\">¥" + g.totalPrice + "</span>" +
         "</button>" +
         "<div id=\"" + id + "\" class=\"biweekly-cat-detail hidden\">" +
-        "<ul class=\"biweekly-items\">" +
-        g.items.map((i) => {
-          const name = escapeHtml(i.name);
-          const meta = escapeHtml((i.brand || "") + " " + (i.expiryDate || ""));
-          const price = rowTotalPrice(i, i.status === "used_up");
-          return "<li>" + name + " <span class=\"item-meta\">" + meta + " · ¥" + price + "</span></li>";
-        }).join("") +
-        "</ul></div></div>";
+        "<table class=\"biweekly-detail-table\"><thead><tr><th>物品</th><th>品牌</th><th>二级品类</th><th>总价</th></tr></thead><tbody>" +
+        tableBody +
+        "</tbody></table></div></div>";
     });
     el.innerHTML = html;
     el.querySelectorAll(".biweekly-cat-btn").forEach((btn) => {
@@ -375,18 +406,6 @@
   useCancel.addEventListener("click", closeUseModal);
   modalUseClose.addEventListener("click", closeUseModal);
   modalUseCloseBtn.addEventListener("click", closeUseModal);
-
-  function openNotionGuide() {
-    if (!modalNotionGuide) return;
-    modalNotionGuide.classList.remove("hidden");
-    modalNotionGuide.setAttribute("aria-hidden", "false");
-  }
-
-  function closeNotionGuide() {
-    if (!modalNotionGuide) return;
-    modalNotionGuide.classList.add("hidden");
-    modalNotionGuide.setAttribute("aria-hidden", "true");
-  }
 
   function onEdit(e) {
     e.stopPropagation();
@@ -570,38 +589,63 @@
   modalClose.addEventListener("click", closeForm);
   formCancel.addEventListener("click", closeForm);
 
-  // ---------- 设置：提醒周期、通知邮箱、Notion 同步 ----------
+  // ---------- 设置：通知、数据保存、AI 管家 ----------
   function renderSettings() {
     const s = getSettings();
     const cycleEl = document.getElementById("setting-remind-cycle");
     const emailEl = document.getElementById("setting-notify-email");
-    const notionSyncEl = document.getElementById("setting-notion-sync");
+    const summaryWeeksEl = document.getElementById("setting-summary-weeks");
+    const storageModeEl = document.getElementById("setting-storage-mode");
+    const descLocal = document.getElementById("setting-storage-desc-local");
+    const descNotion = document.getElementById("setting-storage-desc-notion");
+    const localBlock = document.getElementById("local-settings-block");
+    const notionBlock = document.getElementById("notion-settings-block");
     const notionTokenEl = document.getElementById("setting-notion-token");
     const notionDbIdEl = document.getElementById("setting-notion-database-id");
     const notionParentEl = document.getElementById("setting-notion-parent-page-id");
-    if (cycleEl) cycleEl.value = String(s.remindCycleDays);
+    const statusEl = document.getElementById("notion-create-db-status");
+
+    const cycleVal = [7, 14, 21, 28].includes(s.remindCycleDays) ? s.remindCycleDays : 7;
+    if (cycleEl) cycleEl.value = String(cycleVal);
     if (emailEl) emailEl.value = s.notifyEmail || "";
-    if (notionSyncEl) notionSyncEl.checked = !!s.notionSync;
+    const weeksVal = [1, 2, 3, 4, 6, 8, 12].includes(s.summaryWeeks) ? s.summaryWeeks : 4;
+    if (summaryWeeksEl) summaryWeeksEl.value = String(weeksVal);
+    if (storageModeEl) storageModeEl.value = s.notionSync ? "notion" : "local";
     if (notionTokenEl) notionTokenEl.value = s.notionToken || "";
     if (notionDbIdEl) notionDbIdEl.value = s.notionDatabaseId || "";
     if (notionParentEl) notionParentEl.value = "";
-    const statusEl = document.getElementById("notion-create-db-status");
     if (statusEl) statusEl.textContent = "";
+
+    if (descLocal) descLocal.classList.toggle("hidden", !!s.notionSync);
+    if (descNotion) descNotion.classList.toggle("hidden", !s.notionSync);
+    if (localBlock) localBlock.classList.toggle("hidden", !!s.notionSync);
+    if (notionBlock) notionBlock.classList.toggle("hidden", !s.notionSync);
+    const purgeEnabledEl = document.getElementById("setting-purge-used-up");
+    const purgeWeeksEl = document.getElementById("setting-purge-weeks");
+    const purgeWeeksWrap = document.getElementById("purge-weeks-wrap");
+    if (purgeEnabledEl) purgeEnabledEl.checked = !!s.purgeUsedUpEnabled;
+    if (purgeWeeksWrap) purgeWeeksWrap.classList.toggle("hidden", !s.purgeUsedUpEnabled);
+    const purgeWeeksVal = [2, 4, 8, 12, 26, 52].includes(s.purgeUsedUpWeeks) ? s.purgeUsedUpWeeks : 8;
+    if (purgeWeeksEl) purgeWeeksEl.value = String(purgeWeeksVal);
   }
 
   (function initSettingsListeners() {
     const cycleEl = document.getElementById("setting-remind-cycle");
     const emailEl = document.getElementById("setting-notify-email");
-    const notionSyncEl = document.getElementById("setting-notion-sync");
+    const storageModeEl = document.getElementById("setting-storage-mode");
+    const descLocal = document.getElementById("setting-storage-desc-local");
+    const descNotion = document.getElementById("setting-storage-desc-notion");
+    const localBlock = document.getElementById("local-settings-block");
+    const notionBlock = document.getElementById("notion-settings-block");
     const notionTokenEl = document.getElementById("setting-notion-token");
     const notionDbIdEl = document.getElementById("setting-notion-database-id");
     const btnCreateDb = document.getElementById("btn-notion-create-db");
+    const btnClearNotion = document.getElementById("btn-notion-clear");
     const notionParentEl = document.getElementById("setting-notion-parent-page-id");
     const statusEl = document.getElementById("notion-create-db-status");
 
     function saveNotionSettings() {
       const s = getSettings();
-      s.notionSync = notionSyncEl ? notionSyncEl.checked : false;
       s.notionToken = notionTokenEl ? (notionTokenEl.value || "").trim() : "";
       s.notionDatabaseId = notionDbIdEl ? (notionDbIdEl.value || "").trim() : "";
       saveSettings(s);
@@ -622,15 +666,45 @@
         saveSettings(s);
       });
     }
-    if (notionSyncEl) {
-      notionSyncEl.addEventListener("change", () => {
+    const summaryWeeksEl = document.getElementById("setting-summary-weeks");
+    if (summaryWeeksEl) {
+      summaryWeeksEl.addEventListener("change", () => {
+        const s = getSettings();
+        s.summaryWeeks = parseInt(summaryWeeksEl.value, 10) || 4;
+        saveSettings(s);
+      });
+    }
+
+    if (storageModeEl) {
+      storageModeEl.addEventListener("change", () => {
+        const isNotion = storageModeEl.value === "notion";
         const before = !!getSettings().notionSync;
-        saveNotionSettings();
-        const after = !!getSettings().notionSync;
-        // 第一次从未开启切换到开启时，弹出新手引导
-        if (!before && after) {
-          openNotionGuide();
-        }
+        const s = getSettings();
+        s.notionSync = isNotion;
+        saveSettings(s);
+        if (typeof clearNotionCache === "function") clearNotionCache();
+        if (descLocal) descLocal.classList.toggle("hidden", isNotion);
+        if (descNotion) descNotion.classList.toggle("hidden", !isNotion);
+        if (localBlock) localBlock.classList.toggle("hidden", isNotion);
+        if (notionBlock) notionBlock.classList.toggle("hidden", !isNotion);
+      });
+    }
+    const purgeEnabledEl = document.getElementById("setting-purge-used-up");
+    const purgeWeeksEl = document.getElementById("setting-purge-weeks");
+    if (purgeEnabledEl) {
+      const purgeWeeksWrap = document.getElementById("purge-weeks-wrap");
+      purgeEnabledEl.addEventListener("change", () => {
+        const s = getSettings();
+        s.purgeUsedUpEnabled = purgeEnabledEl.checked;
+        saveSettings(s);
+        if (purgeWeeksWrap) purgeWeeksWrap.classList.toggle("hidden", !purgeEnabledEl.checked);
+      });
+    }
+    if (purgeWeeksEl) {
+      purgeWeeksEl.addEventListener("change", () => {
+        const s = getSettings();
+        s.purgeUsedUpWeeks = parseInt(purgeWeeksEl.value, 10) || 8;
+        saveSettings(s);
       });
     }
     if (notionTokenEl) notionTokenEl.addEventListener("blur", saveNotionSettings);
@@ -641,7 +715,7 @@
         const token = (notionTokenEl.value || "").trim();
         const parentId = (notionParentEl.value || "").trim().replace(/-/g, "");
         if (!token || !parentId) {
-          statusEl.textContent = "请先填写集成密钥和父页面 ID，并确保该页面已共享给集成。";
+          statusEl.textContent = "请先填写集成密钥和父页面 ID，并确保该页面已连接集成。";
           return;
         }
         statusEl.textContent = "创建中…";
@@ -649,16 +723,32 @@
           const databaseId = await createNotionDatabase(token, parentId);
           notionDbIdEl.value = databaseId;
           saveNotionSettings();
-          statusEl.textContent = "已创建，请在该数据库中点击「连接」并选择你的集成。";
+          statusEl.textContent = "已创建。请在 Notion 里把该数据库「连接」到你的集成。";
         } catch (e) {
           statusEl.textContent = e.message || "创建失败";
         }
       });
     }
 
-    if (modalNotionGuideClose) modalNotionGuideClose.addEventListener("click", closeNotionGuide);
-    if (modalNotionGuideCloseBtn) modalNotionGuideCloseBtn.addEventListener("click", closeNotionGuide);
-    if (modalNotionGuideOk) modalNotionGuideOk.addEventListener("click", closeNotionGuide);
+    if (btnClearNotion && storageModeEl && notionTokenEl && notionDbIdEl && statusEl) {
+      btnClearNotion.addEventListener("click", () => {
+        const s = getSettings();
+        s.notionSync = false;
+        s.notionToken = "";
+        s.notionDatabaseId = "";
+        saveSettings(s);
+        if (typeof clearNotionCache === "function") clearNotionCache();
+        storageModeEl.value = "local";
+        notionTokenEl.value = "";
+        notionDbIdEl.value = "";
+        if (notionParentEl) notionParentEl.value = "";
+        if (descLocal) descLocal.classList.remove("hidden");
+        if (descNotion) descNotion.classList.add("hidden");
+        if (localBlock) localBlock.classList.remove("hidden");
+        if (notionBlock) notionBlock.classList.add("hidden");
+        statusEl.textContent = "已清除本机的 Notion 配置。";
+      });
+    }
   })();
 
   function escapeHtml(s) {

@@ -236,16 +236,16 @@ function useQuantity(id, usedQuantity) {
   return useQuantityAsync(id, usedQuantity);
 }
 
-/** 删除已使用完且超过 2 个月的数据，节省空间（Notion 同步开启时不清理，避免误动远程数据） */
+/** 按用户设置删除「已用完」且超过指定周数的数据（仅本地保存且已开启该选项时执行） */
 function purgeUsedUpOlderThanTwoMonths() {
   if (isNotionSyncEnabled()) return 0;
-  const items = getAllItems();
+  const s = getSettings();
+  if (!s.purgeUsedUpEnabled) return 0;
+  const weeks = s.purgeUsedUpWeeks || 8;
   const d = new Date();
-  d.setMonth(d.getMonth() - 2);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const cutoffStr = y + "-" + m + "-" + day;
+  d.setDate(d.getDate() - weeks * 7);
+  const cutoffStr = d.toISOString().slice(0, 10);
+  const items = getAllItems();
   const kept = items.filter((i) => {
     if (i.status !== "used_up") return true;
     if (!i.usedUpAt) return true;
@@ -394,13 +394,15 @@ function rowTotalPrice(r, useAbsQty) {
 }
 
 /**
- * 双周报：过去一个月按一级品类聚合（新录入、已使用）
+ * 货单总结：过去 N 周（由设置 summaryWeeks 决定）按一级品类聚合（新录入、已使用）
  */
 function getPastMonthStatsByCategory1() {
   const items = getAllItems();
   const now = new Date();
-  const past = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-  const pastStr = past.toISOString().slice(0, 10);
+  const weeks = getSettings().summaryWeeks || 4;
+  const start = new Date(now);
+  start.setDate(start.getDate() - weeks * 7);
+  const pastStr = start.toISOString().slice(0, 10);
   const todayStr = now.toISOString().slice(0, 10);
   const newByCat = new Map();
   const usedByCat = new Map();
@@ -461,20 +463,25 @@ function getFutureMonthExpiringByCategory1() {
   }));
 }
 
-/** 设置：提醒周期(天)、通知邮箱、Notion 同步 */
+/** 设置：提醒周期(天)、通知邮箱、进货总结周数、Notion 同步、本地自动清理已用完 */
 function getSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_SETTINGS);
     const o = raw ? JSON.parse(raw) : {};
+    const summaryWeeks = parseInt(o.summaryWeeks, 10);
+    const purgeWeeks = parseInt(o.purgeUsedUpWeeks, 10);
     return {
       remindCycleDays: typeof o.remindCycleDays === "number" ? o.remindCycleDays : 7,
       notifyEmail: String(o.notifyEmail || "").trim(),
+      summaryWeeks: (summaryWeeks >= 1 && summaryWeeks <= 52) ? summaryWeeks : 4,
       notionSync: !!o.notionSync,
       notionToken: String(o.notionToken || "").trim(),
       notionDatabaseId: String(o.notionDatabaseId || "").trim(),
+      purgeUsedUpEnabled: o.purgeUsedUpEnabled !== false,
+      purgeUsedUpWeeks: (purgeWeeks >= 1 && purgeWeeks <= 52) ? purgeWeeks : 8,
     };
   } catch {
-    return { remindCycleDays: 7, notifyEmail: "", notionSync: false, notionToken: "", notionDatabaseId: "" };
+    return { remindCycleDays: 7, notifyEmail: "", summaryWeeks: 4, notionSync: false, notionToken: "", notionDatabaseId: "", purgeUsedUpEnabled: true, purgeUsedUpWeeks: 8 };
   }
 }
 

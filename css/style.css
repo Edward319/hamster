@@ -92,7 +92,7 @@ body::before {
 
 .page-title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
   letter-spacing: 0.02em;
@@ -187,7 +187,7 @@ body::before {
 .empty-msg {
   text-align: center;
   color: var(--color-text-muted);
-  font-size: 1.05rem;
+  font-size: 14px;
   padding: 12px 0;
 }
 
@@ -198,7 +198,7 @@ body::before {
 .urging-msg {
   margin: 0 0 10px;
   padding: 8px 0;
-  font-size: 1rem;
+  font-size: 14px;
   color: var(--color-accent);
   font-weight: 500;
 }
@@ -219,8 +219,8 @@ body::before {
   flex-shrink: 0;
 }
 
-.send-status {
-  font-size: 13px;
+.home-send-email .send-status {
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
@@ -228,34 +228,47 @@ body::before {
   color: #c44;
 }
 
-.expiring-list {
-  list-style: none;
+.expiring-wrap {
   margin: 0;
-  padding: 0;
 }
 
-.expiring-list li {
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  background: #fff;
-  border-radius: var(--radius-sm);
-  border-left: 4px solid var(--color-accent);
+.expiring-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 14px;
 }
 
-.expiring-list li:last-child {
-  margin-bottom: 0;
+.expiring-table thead th {
+  padding: 8px 10px 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.expiring-list .item-name {
+.expiring-table tbody td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: top;
+}
+
+.expiring-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.expiring-table .col-name {
   font-weight: 600;
   color: var(--color-text);
 }
 
-.expiring-list .item-meta {
-  color: var(--color-text-muted);
+.expiring-table .col-brand,
+.expiring-table .col-cat,
+.expiring-table .col-expiry,
+.expiring-table .col-remind {
   font-size: 13px;
-  margin-top: 2px;
+  color: var(--color-text-muted);
 }
 
 /* ========== 库存管理：仓鼠管理员 + 表格 ========== */
@@ -553,10 +566,17 @@ body::before {
 }
 
 .biweekly-title {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
+  margin: 0 0 4px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.biweekly-period-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
 .biweekly-block {
@@ -565,7 +585,7 @@ body::before {
 
 .biweekly-subtitle {
   margin: 0 0 8px;
-  font-size: 0.95rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-muted);
 }
@@ -616,20 +636,42 @@ body::before {
   display: none;
 }
 
-.biweekly-items {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 13px;
+.biweekly-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
 }
 
-.biweekly-items li {
-  padding: 4px 0;
+.biweekly-detail-table thead th {
+  padding: 6px 8px 8px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border);
 }
 
-.biweekly-items li:last-child {
+.biweekly-detail-table tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: top;
+}
+
+.biweekly-detail-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.biweekly-detail-table .biweekly-col-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.biweekly-detail-table .biweekly-col-meta,
+.biweekly-detail-table .biweekly-col-price {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 /* 管家页占位 */
@@ -681,6 +723,7 @@ body::before {
 }
 
 .setting-item label {
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-text);
 }
@@ -690,13 +733,53 @@ body::before {
   color: var(--color-text-muted);
 }
 
+/* 一级功能：较大字号，区分主层级 */
 .settings-group-label {
-  padding: 12px 16px 4px;
-  font-size: 12px;
+  padding: 16px 16px 8px;
+  font-size: 16px;
   font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+}
+
+/* 二级选项区块 */
+.settings-sub-group {
+  padding: 0 0 8px;
+}
+
+.settings-sub-label {
+  padding: 8px 16px 2px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+}
+
+.notion-settings-block .setting-item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notion-settings-block.hidden {
+  display: none !important;
+}
+
+.local-settings-block .setting-item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.local-settings-block.hidden {
+  display: none !important;
+}
+
+.purge-weeks-wrap.hidden {
+  display: none !important;
+}
+
+.notion-db-hint {
+  margin: 0 0 8px;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
 .setting-item select,
@@ -712,6 +795,7 @@ body::before {
 
 .setting-item .setting-desc {
   display: block;
+  width: 100%;
   margin-top: 4px;
   font-size: 12px;
   color: var(--color-text-muted);

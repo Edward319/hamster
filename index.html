@@ -20,7 +20,7 @@
             <div class="card-content">
               <div id="home-empty-msg" class="empty-msg hidden">今天没有快过期的东西，真棒！</div>
               <p id="home-urging-msg" class="urging-msg hidden"></p>
-              <ul id="home-expiring-list" class="expiring-list"></ul>
+              <div id="home-expiring-list" class="expiring-wrap"></div>
             </div>
           </div>
           <div class="home-send-email">
@@ -29,6 +29,7 @@
           </div>
           <section class="biweekly-section" id="home-biweekly">
             <h2 class="biweekly-title">货单总结</h2>
+            <p id="biweekly-period-hint" class="biweekly-period-hint" aria-hidden="true"></p>
             <div id="biweekly-new" class="biweekly-block"></div>
             <div id="biweekly-used" class="biweekly-block"></div>
           </section>
@@ -90,45 +91,102 @@
             <h1 class="page-title">设置</h1>
           </header>
           <div class="settings-list">
-            <div class="settings-group-label">提醒设定</div>
+            <!-- 一级：通知 -->
+            <div class="settings-group-label">通知</div>
+            <div class="settings-sub-group">
+              <div class="settings-sub-label">邮箱设定</div>
+              <div class="setting-item">
+                <label for="setting-notify-email">报告发送到指定邮箱</label>
+                <input type="email" id="setting-notify-email" placeholder="填写接收报告的邮箱" />
+                <span class="setting-desc">首页「发送今日报告」会把报告发到这个邮箱。</span>
+              </div>
+              <div class="settings-sub-label">进货总结统计周期</div>
+              <div class="setting-item">
+                <label for="setting-summary-weeks">统计周期（周）</label>
+                <select id="setting-summary-weeks">
+                  <option value="1">过去 1 周</option>
+                  <option value="2">过去 2 周</option>
+                  <option value="3">过去 3 周</option>
+                  <option value="4">过去 4 周</option>
+                  <option value="6">过去 6 周</option>
+                  <option value="8">过去 8 周</option>
+                  <option value="12">过去 12 周</option>
+                </select>
+                <span class="setting-desc">首页「货单总结」按所选周数滚动统计进货与消耗。</span>
+              </div>
+              <div class="settings-sub-label">通知频率</div>
+              <div class="setting-item">
+                <label for="setting-remind-cycle">定期向邮箱发送报告</label>
+                <select id="setting-remind-cycle">
+                  <option value="7">每 1 周</option>
+                  <option value="14">每 2 周</option>
+                  <option value="21">每 3 周</option>
+                  <option value="28">每 4 周</option>
+                </select>
+                <span class="setting-desc">按此周期向上面邮箱发送今日报告（功能开发中，当前可手动在首页发送）。</span>
+              </div>
+            </div>
+
+            <!-- 一级：数据保存 -->
+            <div class="settings-group-label">数据保存</div>
             <div class="setting-item">
-              <label for="setting-remind-cycle">提醒周期</label>
-              <select id="setting-remind-cycle">
-                <option value="1">每天</option>
-                <option value="3">每 3 天</option>
-                <option value="7" selected>每周</option>
-                <option value="14">每两周</option>
+              <label for="setting-storage-mode">保存方式</label>
+              <select id="setting-storage-mode">
+                <option value="local">本地保存</option>
+                <option value="notion">Notion 保存</option>
               </select>
-              <span class="setting-desc">每周定时向邮箱发送今日报告内容</span>
+              <span class="setting-desc" id="setting-storage-desc-local">数据只存在你这台设备的浏览器里，换设备或清空浏览器会丢失；不经过服务器，隐私最好。</span>
+              <span class="setting-desc hidden" id="setting-storage-desc-notion">数据存到你自己的 Notion 里，多设备可同步；本应用不保存任何库存内容。</span>
             </div>
-            <div class="setting-item">
-              <label for="setting-notify-email">通知邮箱</label>
-              <input type="email" id="setting-notify-email" placeholder="接收提醒的邮箱地址" />
+            <div id="local-settings-block" class="local-settings-block hidden">
+              <div class="settings-sub-label">自动清理已用完数据</div>
+              <div class="setting-item">
+                <label for="setting-purge-used-up">启用自动删除已用完记录</label>
+                <input type="checkbox" id="setting-purge-used-up" />
+                <span class="setting-desc">节省本地存储空间；删除后该时段内的「消耗」统计将不再包含这些记录，可能影响货单总结等统计结果。</span>
+              </div>
+              <div id="purge-weeks-wrap" class="purge-weeks-wrap hidden">
+                <div class="setting-item">
+                  <label for="setting-purge-weeks">删除周期（周）</label>
+                  <select id="setting-purge-weeks">
+                    <option value="2">超过 2 周</option>
+                    <option value="4">超过 4 周</option>
+                    <option value="8">超过 8 周</option>
+                    <option value="12">超过 12 周</option>
+                    <option value="26">超过 26 周</option>
+                    <option value="52">超过 52 周</option>
+                  </select>
+                  <span class="setting-desc">标记「用完了」且超过此时长的记录将在进入库存页时自动删除。</span>
+                </div>
+              </div>
             </div>
-            <div class="settings-group-label">数据 · Notion 同步</div>
-            <div class="setting-item">
-              <label>
-                <input type="checkbox" id="setting-notion-sync" />
-                启用 Notion 同步（数据存入你的 Notion）
-              </label>
-              <span class="setting-desc">勾选后，应用会改为把数据保存到你自己的 Notion 数据库；本应用服务器不保留任何数据。第一次使用会弹出一步步小指南。</span>
+            <div id="notion-settings-block" class="notion-settings-block hidden">
+              <div class="settings-sub-label">① 集成密钥</div>
+              <div class="setting-item">
+                <label for="setting-notion-token">集成密钥</label>
+                <input type="password" id="setting-notion-token" placeholder="密钥" autocomplete="off" />
+                <span class="setting-desc">打开 notion.so/my-integrations → 新建「内部集成」→ 复制密钥，粘贴到输入框。</span>
+              </div>
+              <div class="settings-sub-label">② 数据库</div>
+              <p class="notion-db-hint">在 Notion 新建页面 → 右上角「连接」选你的集成 → 把该页面 URL 里最后一段 ID 填到「父页面 ID」→ 点「创建『存货小管家』数据库」</p>
+              <div class="setting-item">
+                <label for="setting-notion-parent-page-id">创建新数据库（推荐）</label>
+                <input type="text" id="setting-notion-parent-page-id" placeholder="父页面 ID" autocomplete="off" />
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-notion-create-db">创建「存货小管家」数据库</button>
+                <span class="setting-desc" id="notion-create-db-status"></span>
+              </div>
+              <div class="setting-item">
+                <label for="setting-notion-database-id">或已有数据库</label>
+                <input type="text" id="setting-notion-database-id" placeholder="数据库 ID" autocomplete="off" />
+              </div>
+              <div class="setting-item">
+                <label>本设备配置</label>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-notion-clear">清除本机 Notion 配置</button>
+                <span class="setting-desc">公共电脑用完可点此清除，不会删除 Notion 里的数据。</span>
+              </div>
             </div>
-            <div class="setting-item setting-notion-fields">
-              <label for="setting-notion-token">Notion 集成密钥（Secret）</label>
-              <input type="password" id="setting-notion-token" placeholder="secret_xxx" autocomplete="off" />
-              <span class="setting-desc">第 1 步：在浏览器打开 notion.so/my-integrations，创建一个「内部集成」，复制其中的 Secret 粘贴到这里。这个密钥只保存在你这台设备，不会上传到服务器。</span>
-            </div>
-            <div class="setting-item setting-notion-fields">
-              <label for="setting-notion-database-id">Notion 数据库 ID</label>
-              <input type="text" id="setting-notion-database-id" placeholder="数据库 URL 中的 32 位 id" autocomplete="off" />
-              <span class="setting-desc">第 3 步：在 Notion 中打开你用于存货的数据库，把该数据库「连接」到上面的集成，然后从数据库页面 URL 中复制那段 32 位 ID 粘贴到这里。</span>
-            </div>
-            <div class="setting-item setting-notion-fields">
-              <label for="setting-notion-parent-page-id">或创建新数据库：父页面 ID</label>
-              <input type="text" id="setting-notion-parent-page-id" placeholder="先共享该页面给集成，再粘贴页面 id" autocomplete="off" />
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-notion-create-db">创建「存货小管家」数据库</button>
-              <span class="setting-desc" id="notion-create-db-status">如果你不想自己建表，可以：在 Notion 新建一个普通页面 → 右上角「连接」到集成 → 把该页面 URL 里的 ID 粘到这里 → 点上面的按钮，应用会帮你在该页面下创建一个结构已匹配好的库存数据库。</span>
-            </div>
+
+            <!-- 一级：AI 管家 -->
             <div class="settings-group-label">AI 管家</div>
             <div class="setting-item">
               <label>AI Agent 接入</label>
@@ -244,46 +302,6 @@
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" id="use-cancel">取消</button>
           <button type="button" class="btn btn-primary" id="use-confirm">确定</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Notion 同步新手引导 -->
-  <div id="modal-notion-guide" class="modal hidden" aria-hidden="true">
-    <div class="modal-backdrop" id="modal-notion-guide-close"></div>
-    <div class="modal-content">
-      <div class="form-card-header">
-        <h2>Notion 同步 · 第一次怎么连？</h2>
-        <button type="button" class="btn-close" id="modal-notion-guide-close-btn" aria-label="关闭">×</button>
-      </div>
-      <div class="item-form">
-        <ol class="notion-guide-steps">
-          <li>
-            <strong>在 Notion 里创建一个集成（只属于你）：</strong><br />
-            打开 <code>notion.so/my-integrations</code> → 新建「内部集成」→ 复制 Secret（以 <code>secret_</code> 开头）备用。
-          </li>
-          <li>
-            <strong>给集成一个「家」页面：</strong><br />
-            在 Notion 新建一个普通页面（比如叫「存货」）→ 右上角点「连接」/「添加连接」→ 选择刚才的集成，把这个页面连给它。
-          </li>
-          <li>
-            <strong>在应用里填密钥并创建数据库：</strong><br />
-            回到本页面，在「Notion 集成密钥」里粘贴 <code>secret_...</code>；<br />
-            打开刚才那个「存货」页面，从浏览器地址栏复制最后那段 32 位 ID（中间带不带横线都可以），粘到「父页面 ID」；<br />
-            点击「创建『存货小管家』数据库」，看到成功提示后，「Notion 数据库 ID」会自动填好。
-          </li>
-          <li>
-            <strong>开始使用：</strong><br />
-            确认「启用 Notion 同步」已勾选 → 回到「库存」页面试着新增几条 → 打开 Notion 里的数据库，确认记录已经写入你的 Notion。
-          </li>
-        </ol>
-        <p class="notion-guide-tip">
-          小贴士：每个用户都可以用自己的 Notion 集成和数据库配置这一块，<br />
-          数据只会写入各自的 Notion，本应用服务器不会保存任何库存内容。
-        </p>
-        <div class="form-actions">
-          <button type="button" class="btn btn-primary" id="modal-notion-guide-ok">我知道啦</button>
         </div>
       </div>
     </div>
