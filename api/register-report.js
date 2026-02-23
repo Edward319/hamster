@@ -4,8 +4,6 @@
  * POST Body: { email: string, remindCycleDays: number, report?: object, enabled: boolean }
  */
 
-const { kv } = require("@vercel/kv");
-
 const KEY = "report_subscribers";
 
 function setCors(res) {
@@ -14,10 +12,26 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+function getKv() {
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    return null;
+  }
+  try {
+    return require("@vercel/kv").kv;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "请使用 POST" });
+
+  const kv = getKv();
+  if (!kv) {
+    return res.status(503).json({ error: "定期发送需在 Vercel 中创建并关联 KV 存储，见文档。" });
+  }
 
   let body;
   try {

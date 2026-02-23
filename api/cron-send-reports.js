@@ -4,15 +4,21 @@
  * 需在 Vercel 环境变量中设置 CRON_SECRET，且 Cron 触发时会携带该值。
  */
 
-const { kv } = require("@vercel/kv");
-const { sendViaGmail } = require("./lib/email");
-
 const KEY = "report_subscribers";
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+function getKv() {
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return null;
+  try {
+    return require("@vercel/kv").kv;
+  } catch {
+    return null;
+  }
 }
 
 module.exports = async (req, res) => {
@@ -26,6 +32,11 @@ module.exports = async (req, res) => {
     return res.status(401).json({ error: "未授权" });
   }
 
+  const kv = getKv();
+  if (!kv) {
+    return res.status(200).json({ ok: true, message: "未关联 KV 存储，跳过定期发送。", sent: 0 });
+  }
+
   const smtpUser = (process.env.SMTP_USER || "").trim();
   const smtpPass = (process.env.SMTP_PASS || "").trim();
   if (!smtpUser || !smtpPass) {
@@ -35,6 +46,8 @@ module.exports = async (req, res) => {
       sent: 0,
     });
   }
+
+  const { sendViaGmail } = require("./lib/email");
 
   try {
     let subs = await kv.get(KEY);
