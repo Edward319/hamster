@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>核心逻辑检查 — 存货小管家</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 18px; }
+    .ok { color: #0a0; }
+    .fail { color: #c00; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <h1>核心逻辑检查</h1>
+  <p>用于发版前快速确认数据与设置相关逻辑未退化。打开本页无报错且下方全部为「通过」即可。</p>
+  <ul id="results"></ul>
+  <script src="../js/data.js"></script>
+  <script>
+    (function () {
+      var results = document.getElementById("results");
+      function add(name, pass, msg) {
+        var li = document.createElement("li");
+        li.className = pass ? "ok" : "fail";
+        li.textContent = (pass ? "通过：" : "失败：") + name + (msg ? " — " + msg : "");
+        results.appendChild(li);
+      }
+      function assert(cond, name, msg) {
+        add(name, !!cond, msg);
+      }
+
+      // 1. getSettings 返回结构正确、默认值在合理范围
+      try {
+        var s = typeof getSettings === "function" ? getSettings() : null;
+        assert(s && typeof s === "object", "getSettings 存在且返回对象");
+        assert(s && typeof s.remindCycleDays === "number", "getSettings.remindCycleDays 为数字");
+        assert(s && typeof s.summaryWeeks === "number" && s.summaryWeeks >= 1 && s.summaryWeeks <= 52, "getSettings.summaryWeeks 在 1～52");
+        assert(s && typeof s.purgeUsedUpWeeks === "number" && s.purgeUsedUpWeeks >= 1 && s.purgeUsedUpWeeks <= 52, "getSettings.purgeUsedUpWeeks 在 1～52");
+        assert(s && "purgeUsedUpEnabled" in s, "getSettings 含 purgeUsedUpEnabled");
+      } catch (e) {
+        add("getSettings 整体", false, e.message);
+      }
+
+      // 2. normalizeRecord 归一化一条记录
+      try {
+        var item = { id: "t1", name: " 牛奶 ", category1: "食品", category2: "奶", brand: "X", quantity: "1", unitPrice: 10, purchaseDate: "2025-01-01", expiryDate: "2025-06-01" };
+        var out = typeof normalizeRecord === "function" ? normalizeRecord(item) : null;
+        assert(out && out.id === "t1", "normalizeRecord 保留 id");
+        assert(out && out.name === "牛奶", "normalizeRecord  trim name");
+        assert(out && out.quantity === 1, "normalizeRecord 数量转数字");
+        assert(out && out.remindBeforeDays === 30, "normalizeRecord 默认提前提醒 30 天");
+        assert(out && out.status === "in_stock", "normalizeRecord 默认在库");
+      } catch (e) {
+        add("normalizeRecord", false, e.message);
+      }
+
+      // 3. getPastMonthStatsByCategory1 返回结构
+      try {
+        var past = typeof getPastMonthStatsByCategory1 === "function" ? getPastMonthStatsByCategory1() : null;
+        assert(past && Array.isArray(past.newEntries) && Array.isArray(past.used), "getPastMonthStatsByCategory1 返回 newEntries 与 used 数组");
+      } catch (e) {
+        add("getPastMonthStatsByCategory1", false, e.message);
+      }
+
+      // 4. getAllItems 不抛错
+      try {
+        var items = typeof getAllItems === "function" ? getAllItems() : null;
+        assert(Array.isArray(items), "getAllItems 返回数组");
+      } catch (e) {
+        add("getAllItems", false, e.message);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -46,7 +46,10 @@
     }
     views.forEach((v) => v.classList.toggle("view-active", v.dataset.view === viewName));
     navItems.forEach((n) => n.classList.toggle("active", n.dataset.nav === viewName));
-    if (viewName === "home") renderHome();
+    if (viewName === "home") {
+      renderHome();
+      syncReportSubscription();
+    }
     if (viewName === "inventory") renderInventory();
     if (viewName === "butler") renderButler();
     if (viewName === "settings") renderSettings();
@@ -121,8 +124,10 @@
     const expiring = getExpiringItems();
     const urging = getUrgingText(expiring.length);
     const past = getPastMonthStatsByCategory1();
+    const settings = getSettings();
     return {
       urging,
+      summaryWeeks: settings.summaryWeeks || 4,
       expiring: expiring.map((i) => ({
         name: i.name,
         brand: i.brand,
@@ -179,6 +184,26 @@
 
   const btnSendReport = document.getElementById("btn-send-report");
   if (btnSendReport) btnSendReport.addEventListener("click", sendReportToEmail);
+
+  /** 定期自动发送：把当前报告快照同步到服务端，供 Cron 按周期发送（不打开页面也能收信） */
+  function syncReportSubscription() {
+    const origin = window.location.origin;
+    if (!origin || origin === "null" || origin === "file://") return;
+    const s = getSettings();
+    const email = (s.notifyEmail || "").trim();
+    if (!email || !s.autoReportEnabled) return;
+    const report = buildTodayReportPayload();
+    fetch(origin + "/api/register-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        remindCycleDays: s.remindCycleDays || 7,
+        report,
+        enabled: true,
+      }),
+    }).catch(() => {});
+  }
 
   /** 按 物品+品牌+二级品类 合并，汇总总价；不包含过期日 */
   function mergeItemsByKey(items, isUsed) {
@@ -627,6 +652,8 @@
     if (purgeWeeksWrap) purgeWeeksWrap.classList.toggle("hidden", !s.purgeUsedUpEnabled);
     const purgeWeeksVal = [2, 4, 8, 12, 26, 52].includes(s.purgeUsedUpWeeks) ? s.purgeUsedUpWeeks : 8;
     if (purgeWeeksEl) purgeWeeksEl.value = String(purgeWeeksVal);
+    const autoReportEl = document.getElementById("setting-auto-report");
+    if (autoReportEl) autoReportEl.checked = !!s.autoReportEnabled;
   }
 
   (function initSettingsListeners() {
@@ -672,6 +699,29 @@
         const s = getSettings();
         s.summaryWeeks = parseInt(summaryWeeksEl.value, 10) || 4;
         saveSettings(s);
+      });
+    }
+    const autoReportEl = document.getElementById("setting-auto-report");
+    if (autoReportEl) {
+      autoReportEl.addEventListener("change", () => {
+        const s = getSettings();
+        s.autoReportEnabled = autoReportEl.checked;
+        saveSettings(s);
+        const origin = window.location.origin;
+        if (origin && origin !== "null" && origin !== "file://") {
+          const email = (s.notifyEmail || "").trim();
+          if (!email) return;
+          fetch(origin + "/api/register-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              remindCycleDays: s.remindCycleDays || 7,
+              report: autoReportEl.checked ? buildTodayReportPayload() : undefined,
+              enabled: autoReportEl.checked,
+            }),
+          }).catch(() => {});
+        }
       });
     }
 

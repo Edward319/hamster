@@ -479,9 +479,10 @@ function getSettings() {
       notionDatabaseId: String(o.notionDatabaseId || "").trim(),
       purgeUsedUpEnabled: o.purgeUsedUpEnabled !== false,
       purgeUsedUpWeeks: (purgeWeeks >= 1 && purgeWeeks <= 52) ? purgeWeeks : 8,
+      autoReportEnabled: !!o.autoReportEnabled,
     };
   } catch {
-    return { remindCycleDays: 7, notifyEmail: "", summaryWeeks: 4, notionSync: false, notionToken: "", notionDatabaseId: "", purgeUsedUpEnabled: true, purgeUsedUpWeeks: 8 };
+    return { remindCycleDays: 7, notifyEmail: "", summaryWeeks: 4, notionSync: false, notionToken: "", notionDatabaseId: "", purgeUsedUpEnabled: true, purgeUsedUpWeeks: 8, autoReportEnabled: false };
   }
 }
 
