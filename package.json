@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "存货小管家 — 保质期与库存管理",
   "private": true,
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@vercel/kv": "^0.4.0",
+    "@vercel/kv": "^2.0.0",
     "resend": "^4.0.0",
     "nodemailer": "^6.9.0"
   }
