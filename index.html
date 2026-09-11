@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f4efe6" />
+  <meta name="theme-color" content="#efe3c4" />
   <meta name="color-scheme" content="light" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>存货小管家 — 保质期与库存管理</title>
+  <title>Keeper — 存货小管家</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,144,500;1,144,480;1,144,600&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -30,32 +30,36 @@
     <symbol id="icon-settings" viewBox="0 0 24 24">
       <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M4 7.5h16M7 12h10M9.5 16.5h5"/>
     </symbol>
-    <symbol id="icon-hamster" viewBox="0 0 96 96">
-      <ellipse cx="30" cy="28" rx="10" ry="13" fill="#e8c4b0" stroke="#2a241c" stroke-width="1.8"/>
-      <ellipse cx="66" cy="28" rx="10" ry="13" fill="#e8c4b0" stroke="#2a241c" stroke-width="1.8"/>
-      <ellipse cx="30" cy="29" rx="5" ry="7" fill="#f3d4c8"/>
-      <ellipse cx="66" cy="29" rx="5" ry="7" fill="#f3d4c8"/>
-      <ellipse cx="48" cy="58" rx="26" ry="22" fill="#edd4b0" stroke="#2a241c" stroke-width="1.8"/>
-      <circle cx="48" cy="42" r="22" fill="#f0d8b8" stroke="#2a241c" stroke-width="1.8"/>
-      <ellipse cx="48" cy="52" rx="12" ry="9" fill="#f7ead6"/>
-      <circle cx="40" cy="40" r="2.4" fill="#2a241c"/>
-      <circle cx="56" cy="40" r="2.4" fill="#2a241c"/>
-      <ellipse cx="32" cy="46" rx="5" ry="3" fill="#e8a090" opacity=".55"/>
-      <ellipse cx="64" cy="46" rx="5" ry="3" fill="#e8a090" opacity=".55"/>
-      <ellipse cx="48" cy="47" rx="3.2" ry="2.4" fill="#c45c38"/>
-      <path d="M45.5 50.5c1.6 1.8 3.4 1.8 5 0" fill="none" stroke="#2a241c" stroke-width="1.4" stroke-linecap="round"/>
-      <path d="M22 44h-8M22 48h-7M74 44h8M74 48h7" fill="none" stroke="#2a241c" stroke-width="1.2" stroke-linecap="round"/>
-      <ellipse cx="28" cy="72" rx="7" ry="5" fill="#edd4b0" stroke="#2a241c" stroke-width="1.6"/>
-      <ellipse cx="68" cy="72" rx="7" ry="5" fill="#edd4b0" stroke="#2a241c" stroke-width="1.6"/>
+    <symbol id="icon-sprig" viewBox="0 0 32 48">
+      <path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" d="M16 45C16 34 16.2 22 16 8"/>
+      <path fill="currentColor" d="M16 13c-5.4-2.2-8.6-6.8-5.2-10.2 1.2 3.8 3.2 7.2 5.2 10.2z"/>
+      <path fill="currentColor" d="M16 13c5.4-2.2 8.6-6.8 5.2-10.2-1.2 3.8-3.2 7.2-5.2 10.2z"/>
+      <path fill="currentColor" d="M16 23c-6-1.6-9.4-5.8-5.8-9.2 1 4.2 3.4 7.4 5.8 9.2z"/>
+      <path fill="currentColor" d="M16 23c6-1.6 9.4-5.8 5.8-9.2-1 4.2-3.4 7.4-5.8 9.2z"/>
+      <path fill="currentColor" d="M16 33c-5.2-1.2-8-4.6-5-7.6.8 3.6 2.8 6.2 5 7.6z"/>
+      <path fill="currentColor" d="M16 33c5.2-1.2 8-4.6 5-7.6-.8 3.6-2.8 6.2-5 7.6z"/>
     </symbol>
   </svg>
 
   <div class="app">
+    <header class="mobile-brand">
+      <div class="wordmark">
+        <svg class="wordmark-sprig" viewBox="0 0 32 48" aria-hidden="true"><use href="#icon-sprig"/></svg>
+        <div class="wordmark-text">
+          <span class="wordmark-en">Keeper</span>
+          <span class="wordmark-zh">存货小管家</span>
+        </div>
+      </div>
+    </header>
+
     <header class="site-header">
       <div class="site-header-inner">
-        <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 96 96" aria-hidden="true"><use href="#icon-hamster"/></svg>
-          <span class="brand-name">存货小管家</span>
+        <div class="wordmark">
+          <svg class="wordmark-sprig" viewBox="0 0 32 48" aria-hidden="true"><use href="#icon-sprig"/></svg>
+          <div class="wordmark-text">
+            <span class="wordmark-en">Keeper</span>
+            <span class="wordmark-zh">存货小管家</span>
+          </div>
         </div>
         <nav class="site-nav" role="navigation" aria-label="主导航">
           <button type="button" class="nav-item active" data-nav="home">首页</button>
@@ -70,15 +74,12 @@
       <section id="view-home" class="view view-active" data-view="home">
         <div class="view-inner">
           <header class="page-masthead">
-            <p class="kicker">存货小管家</p>
+            <p class="kicker">今日</p>
             <h1 class="page-title">今日提醒</h1>
             <p id="home-date" class="page-date"></p>
           </header>
 
           <article class="panel notice-panel">
-            <div class="panel-mascot">
-              <svg class="hamster-svg" viewBox="0 0 96 96" aria-hidden="true"><use href="#icon-hamster"/></svg>
-            </div>
             <div class="card-content">
               <div id="home-empty-msg" class="empty-state hidden">
                 <p class="empty-lead">今天没有快过期的东西</p>
@@ -134,9 +135,7 @@
             <h1 class="page-title">管家</h1>
           </header>
           <article class="panel butler-panel">
-            <div class="panel-mascot">
-              <svg class="hamster-svg" viewBox="0 0 96 96" aria-hidden="true"><use href="#icon-hamster"/></svg>
-            </div>
+            <svg class="wordmark-sprig butler-sprig" viewBox="0 0 32 48" aria-hidden="true"><use href="#icon-sprig"/></svg>
             <p class="butler-desc">预留接入 DeepSeek、通义千问、豆包等大模型，实现智能管家对话与服务。</p>
             <p class="butler-hint">后续版本将支持连接自己的大模型账户，通过读取库存数据提供对话与建议。</p>
           </article>
