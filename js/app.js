@@ -358,6 +358,7 @@
 
       card.innerHTML =
         '<button type="button" class="sku-card-header" aria-expanded="false">' +
+        '<span class="sku-chevron" aria-hidden="true">▸</span>' +
         "<div>" +
         '<h3 class="sku-name">' +
         escapeHtml(g.name) +
@@ -462,7 +463,7 @@
     if (!stamp) return;
     stamp.textContent = text || "已登记";
     stamp.classList.remove("hidden");
-    setTimeout(() => stamp.classList.add("hidden"), 1200);
+    setTimeout(() => stamp.classList.add("hidden"), 1600);
   }
 
   filterBtns.forEach((btn) => {
