@@ -1,6 +1,6 @@
 /**
  * 应用逻辑：导航、首页临期（按条 remindBeforeDays）、
- * 库存两级表格（SKU 聚合 + 按到期日展开）、用完了填数量、复制搜索、盖章
+ * 库存卡片（SKU 聚合 + 按到期日展开）、用完了填数量、复制搜索、盖章
  */
 
 (function () {
@@ -16,6 +16,7 @@
   const copySearch = document.getElementById("item-copy-search");
   const copyList = document.getElementById("item-copy-list");
   const stamp = document.getElementById("inventory-stamp");
+  const inventoryList = document.getElementById("inventory-list");
   const filterBtns = document.querySelectorAll(".filter-btn");
   const modalUse = document.getElementById("modal-use");
   const useItemDesc = document.getElementById("use-item-desc");
@@ -69,17 +70,40 @@
     return "到期的东西太多了，快吃快用啊！别浪费！";
   }
 
+  function formatTodayLabel() {
+    const d = new Date();
+    const week = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+    return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · 星期" + week;
+  }
+
+  function daysUntil(dateStr) {
+    const d = new Date(String(dateStr) + "T00:00:00");
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return Math.round((d - t) / 86400000);
+  }
+
+  function formatRemain(dateStr) {
+    const n = daysUntil(dateStr);
+    if (Number.isNaN(n)) return "";
+    if (n < 0) return "已过期 " + Math.abs(n) + " 天";
+    if (n === 0) return "今天到期";
+    if (n === 1) return "明天到期";
+    return "还剩 " + n + " 天";
+  }
+
   function renderHome() {
     const list = document.getElementById("home-expiring-list");
     const emptyMsg = document.getElementById("home-empty-msg");
     const urgingMsg = document.getElementById("home-urging-msg");
+    const dateEl = document.getElementById("home-date");
+    if (dateEl) dateEl.textContent = formatTodayLabel();
     const items = getExpiringItems();
     list.innerHTML = "";
     emptyMsg.classList.add("hidden");
     urgingMsg.classList.add("hidden");
     if (items.length === 0) {
       emptyMsg.classList.remove("hidden");
-      emptyMsg.textContent = "今天没有快过期的东西，真棒！";
       list.innerHTML = "";
     } else {
       const text = getUrgingText(items.length);
@@ -87,35 +111,32 @@
         urgingMsg.textContent = text;
         urgingMsg.classList.remove("hidden");
       }
-      list.innerHTML =
-        '<table class="expiring-table" aria-label="即将到期物品">' +
-        '<thead><tr><th>物品</th><th>品牌</th><th>品类</th><th>到期</th><th>提前提醒</th></tr></thead>' +
-        '<tbody>' +
-        items
-          .map(
-            (i) =>
-              "<tr>" +
-              "<td class=\"col-name\">" +
-              escapeHtml(i.name) +
-              "</td>" +
-              "<td class=\"col-brand\">" +
-              escapeHtml(i.brand) +
-              "</td>" +
-              "<td class=\"col-cat\">" +
-              escapeHtml(i.category1) +
-              " / " +
-              escapeHtml(i.category2) +
-              "</td>" +
-              "<td class=\"col-expiry\">" +
-              escapeHtml(i.expiryDate) +
-              "</td>" +
-              "<td class=\"col-remind\">" +
-              (i.remindBeforeDays ? escapeHtml(String(i.remindBeforeDays)) + " 天" : "—") +
-              "</td>" +
-              "</tr>"
-          )
-          .join("") +
-        "</tbody></table>";
+      list.innerHTML = items
+        .map(function (i) {
+          return (
+            '<article class="expiry-card">' +
+            '<div class="expiry-name">' +
+            escapeHtml(i.name) +
+            "</div>" +
+            '<div class="expiry-meta">' +
+            escapeHtml(i.brand) +
+            " · " +
+            escapeHtml(i.category1) +
+            " / " +
+            escapeHtml(i.category2) +
+            "</div>" +
+            '<div class="expiry-footer">' +
+            "<span>" +
+            escapeHtml(i.expiryDate) +
+            (i.remindBeforeDays ? " · 提前 " + escapeHtml(String(i.remindBeforeDays)) + " 天提醒" : "") +
+            "</span>" +
+            '<span class="expiry-remain">' +
+            escapeHtml(formatRemain(i.expiryDate)) +
+            "</span>" +
+            "</div></article>"
+          );
+        })
+        .join("");
     }
     renderBiweekly();
   }
@@ -238,28 +259,27 @@
     list.forEach((g, idx) => {
       const id = containerId + "-cat-" + idx;
       const rows = mergeItemsByKey(g.items, isUsed);
-      const tableBody =
+      const lines =
         rows
           .map(
             (r) =>
-              "<tr>" +
-              "<td class=\"biweekly-col-name\">" + escapeHtml(r.name) + "</td>" +
-              "<td class=\"biweekly-col-meta\">" + escapeHtml(r.brand) + "</td>" +
-              "<td class=\"biweekly-col-meta\">" + escapeHtml(r.category2) + "</td>" +
-              "<td class=\"biweekly-col-price\">¥" + r.totalPrice + "</td>" +
-              "</tr>"
+              "<li>" +
+              "<span class=\"line-name\">" + escapeHtml(r.name) + "</span>" +
+              "<span class=\"line-price\">¥" + r.totalPrice + "</span>" +
+              "<span class=\"line-meta\">" + escapeHtml(r.brand) + " · " + escapeHtml(r.category2) + "</span>" +
+              "</li>"
           )
           .join("") || "";
       html +=
         "<div class=\"biweekly-cat\">" +
         "<button type=\"button\" class=\"biweekly-cat-btn\" data-id=\"" + id + "\" aria-expanded=\"false\">" +
-        "<span class=\"biweekly-cat-arrow\">▶</span> <span class=\"biweekly-cat-name\">" + escapeHtml(g.category1) + "</span> " +
+        "<span class=\"biweekly-cat-arrow\">▸</span> <span class=\"biweekly-cat-name\">" + escapeHtml(g.category1) + "</span> " +
         "<span class=\"biweekly-cat-price\">¥" + g.totalPrice + "</span>" +
         "</button>" +
         "<div id=\"" + id + "\" class=\"biweekly-cat-detail hidden\">" +
-        "<table class=\"biweekly-detail-table\"><thead><tr><th>物品</th><th>品牌</th><th>二级品类</th><th>总价</th></tr></thead><tbody>" +
-        tableBody +
-        "</tbody></table></div></div>";
+        "<ul class=\"summary-lines\">" +
+        lines +
+        "</ul></div></div>";
     });
     el.innerHTML = html;
     el.querySelectorAll(".biweekly-cat-btn").forEach((btn) => {
@@ -271,7 +291,7 @@
         const open = !detail.classList.contains("hidden");
         btn.setAttribute("aria-expanded", open ? "true" : "false");
         const arrow = btn.querySelector(".biweekly-cat-arrow");
-        if (arrow) arrow.textContent = open ? "▼ " : "▶ ";
+        if (arrow) arrow.textContent = open ? "▾" : "▸";
       });
     });
   }
@@ -281,17 +301,16 @@
   // ---------- 库存管理：按 SKU 分组 + 展开显示按到期日的底层；已使用完超 2 个月自动删除 ----------
   function renderInventory() {
     purgeUsedUpOlderThanTwoMonths();
-    const tbody = document.getElementById("inventory-tbody");
+    const list = inventoryList || document.getElementById("inventory-list");
+    if (!list) return;
     const groups = getInventoryGroups(currentInventoryStatus);
-    tbody.innerHTML = "";
+    list.innerHTML = "";
 
     if (groups.length === 0) {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td colspan="7" class="inventory-empty">' +
-        (currentInventoryStatus === "used_up" ? "暂无已用完记录" : "暂无在库记录") +
-        "</td>";
-      tbody.appendChild(tr);
+      const empty = document.createElement("p");
+      empty.className = "inventory-empty";
+      empty.textContent = currentInventoryStatus === "used_up" ? "暂无已用完记录" : "暂无在库记录";
+      list.appendChild(empty);
       return;
     }
 
@@ -299,107 +318,94 @@
       const expiryRange =
         g.expiryMin === g.expiryMax ? g.expiryMin : g.expiryMin + " ~ " + g.expiryMax;
       const skuId = "sku-" + idx;
+      const card = document.createElement("article");
+      card.className = "sku-card";
+      card.dataset.skuId = skuId;
 
-      const tr1 = document.createElement("tr");
-      tr1.className = "sku-row";
-      tr1.dataset.skuId = skuId;
-      tr1.innerHTML =
-        '<td class="col-expand"><button type="button" class="expand-btn" aria-label="展开">▶</button></td>' +
-        '<td class="cell-name">' +
-        escapeHtml(g.name) +
-        "</td>" +
-        '<td class="cell-category">' +
-        escapeHtml(g.category1) +
-        " / " +
-        escapeHtml(g.category2) +
-        "</td>" +
-        "<td>" +
-        escapeHtml(g.brand) +
-        "</td>" +
-        "<td>" +
-        escapeHtml(String(g.totalQty)) +
-        "</td>" +
-        "<td class=\"cell-total-price\">¥" + (g.totalPrice != null ? g.totalPrice : 0) + "</td>" +
-        "<td>" +
-        escapeHtml(expiryRange) +
-        "</td>";
-      tbody.appendChild(tr1);
-
-      const tr2 = document.createElement("tr");
-      tr2.className = "detail-row";
-      tr2.dataset.skuId = skuId;
-      let detailRows = "";
+      let lots = "";
       g.rows.forEach((r) => {
         const qtyDisplay =
           currentInventoryStatus === "used_up"
             ? Math.abs(Number(r.quantity) || 0)
-            : (Number(r.quantity) || 0);
+            : Number(r.quantity) || 0;
         const rowPrice = rowTotalPrice(r, currentInventoryStatus === "used_up");
-        detailRows +=
-          "<tr data-id=\"" +
+        lots +=
+          '<div class="lot-row" data-id="' +
           escapeHtml(r.id) +
-          "\">" +
-          "<td>" +
+          '">' +
+          '<div class="lot-main">' +
+          '<div class="lot-date">' +
           escapeHtml(r.expiryDate) +
-          "</td>" +
-          "<td>" +
+          " · " +
+          escapeHtml(formatRemain(r.expiryDate)) +
+          "</div>" +
+          '<div class="lot-sub">' +
+          "数量 " +
           escapeHtml(String(qtyDisplay)) +
-          "</td>" +
-          "<td>¥" + rowPrice + "</td>" +
-          "<td>" +
+          " · ¥" +
+          rowPrice +
+          " · " +
           (r.status === "in_stock" ? "在库" : "已用完") +
-          "</td>" +
-          "<td class=\"cell-actions\">" +
+          "</div></div>" +
+          '<div class="lot-actions">' +
           (r.status === "in_stock"
             ? '<button type="button" class="btn-cell btn-use">用完了</button>'
             : "") +
           '<button type="button" class="btn-cell btn-edit">编辑</button>' +
           '<button type="button" class="btn-cell btn-del">删除</button>' +
-          "</td></tr>";
+          "</div></div>";
       });
-      tr2.innerHTML =
-        '<td colspan="7"><div class="detail-inner">' +
-        '<table class="detail-table"><thead><tr><th>到期日</th><th>数量</th><th>总价</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
-        detailRows +
-        "</tbody></table></div></td>";
-      tbody.appendChild(tr2);
+
+      card.innerHTML =
+        '<button type="button" class="sku-card-header" aria-expanded="false">' +
+        "<div>" +
+        '<h3 class="sku-name">' +
+        escapeHtml(g.name) +
+        "</h3>" +
+        '<p class="sku-meta">' +
+        escapeHtml(g.brand) +
+        " · " +
+        escapeHtml(g.category1) +
+        " / " +
+        escapeHtml(g.category2) +
+        "</p></div>" +
+        '<div class="sku-stats">' +
+        '<span class="sku-qty">× ' +
+        escapeHtml(String(g.totalQty)) +
+        "</span>" +
+        "<span>¥" +
+        (g.totalPrice != null ? g.totalPrice : 0) +
+        "</span>" +
+        "<span>" +
+        escapeHtml(expiryRange) +
+        "</span></div></button>" +
+        '<div class="sku-card-detail">' +
+        lots +
+        "</div>";
+      list.appendChild(card);
     });
 
-    tbody.querySelectorAll(".sku-row").forEach((row) => {
-      row.addEventListener("click", (e) => {
-        if (e.target.closest(".expand-btn")) return;
-        const btn = row.querySelector(".expand-btn");
-        const skuId = row.dataset.skuId;
-        const detail = tbody.querySelector(".detail-row[data-sku-id=\"" + skuId + "\"]");
-        if (!detail) return;
-        const isOpen = detail.classList.toggle("visible");
-        if (btn) btn.classList.toggle("expanded", isOpen);
+    list.querySelectorAll(".sku-card-header").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".sku-card");
+        if (!card) return;
+        const open = card.classList.toggle("is-open");
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
       });
     });
-    tbody.querySelectorAll(".expand-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const row = e.target.closest("tr");
-        const skuId = row.dataset.skuId;
-        const detail = tbody.querySelector(".detail-row[data-sku-id=\"" + skuId + "\"]");
-        if (!detail) return;
-        const isOpen = detail.classList.toggle("visible");
-        btn.classList.toggle("expanded", isOpen);
-      });
-    });
-    tbody.querySelectorAll(".detail-row .btn-use").forEach((b) => b.addEventListener("click", onUseClick));
-    tbody.querySelectorAll(".detail-row .btn-edit").forEach((b) => b.addEventListener("click", onEdit));
-    tbody.querySelectorAll(".detail-row .btn-del").forEach((b) => b.addEventListener("click", onDelete));
+    list.querySelectorAll(".btn-use").forEach((b) => b.addEventListener("click", onUseClick));
+    list.querySelectorAll(".btn-edit").forEach((b) => b.addEventListener("click", onEdit));
+    list.querySelectorAll(".btn-del").forEach((b) => b.addEventListener("click", onDelete));
   }
 
   function onUseClick(e) {
     e.stopPropagation();
-    const id = e.target.closest("tr").dataset.id;
+    const id = e.target.closest("[data-id]").dataset.id;
     const items = getAllItems();
     const item = items.find((i) => i.id === id);
     if (!item || item.status !== "in_stock") return;
     useTargetId = id;
-    useItemDesc.textContent = escapeHtml(item.name) + "（" + escapeHtml(item.expiryDate) + "）";
+    useItemDesc.textContent = item.name + "（" + item.expiryDate + "）";
     useQuantityMax.textContent = String(item.quantity);
     useQuantityInput.max = item.quantity;
     useQuantityInput.value = Math.min(1, item.quantity);
@@ -434,7 +440,7 @@
 
   function onEdit(e) {
     e.stopPropagation();
-    const id = e.target.closest("tr").dataset.id;
+    const id = e.target.closest("[data-id]").dataset.id;
     const item = getAllItems().find((i) => i.id === id);
     if (!item) return;
     openForm(item);
@@ -442,7 +448,7 @@
 
   async function onDelete(e) {
     e.stopPropagation();
-    const id = e.target.closest("tr").dataset.id;
+    const id = e.target.closest("[data-id]").dataset.id;
     if (!id || !confirm("确定删除这条记录吗？（仅用于录错）")) return;
     try {
       await deleteItem(id);

@@ -22,16 +22,16 @@ function buildEmailHtml(report) {
   const expiringRows = expiring
     .map(
       (i) =>
-        `<tr><td style="padding:8px 12px;border-bottom:1px solid #ddd6c8;">${escapeHtml(i.name)}</td>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd6c8;">${escapeHtml(i.brand)} · ${escapeHtml(i.category1)}/${escapeHtml(i.category2)}</td>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd6c8;">${escapeHtml(i.expiryDate)}</td></tr>`
+        `<tr><td style="padding:10px 0;border-bottom:1px solid rgba(28,25,22,0.08);">${escapeHtml(i.name)}</td>
+<td style="padding:10px 0;border-bottom:1px solid rgba(28,25,22,0.08);color:#5a534b;">${escapeHtml(i.brand)} · ${escapeHtml(i.category1)}/${escapeHtml(i.category2)}</td>
+<td style="padding:10px 0;border-bottom:1px solid rgba(28,25,22,0.08);">${escapeHtml(i.expiryDate)}</td></tr>`
     )
     .join("");
   const newRows = summaryNew
-    .map((g) => `<tr><td style="padding:6px 12px;">${escapeHtml(g.category1)}</td><td style="padding:6px 12px;">¥${g.totalPrice}</td></tr>`)
+    .map((g) => `<tr><td style="padding:8px 0;border-bottom:1px solid rgba(28,25,22,0.08);">${escapeHtml(g.category1)}</td><td style="padding:8px 0;border-bottom:1px solid rgba(28,25,22,0.08);">¥${g.totalPrice}</td></tr>`)
     .join("");
   const usedRows = summaryUsed
-    .map((g) => `<tr><td style="padding:6px 12px;">${escapeHtml(g.category1)}</td><td style="padding:6px 12px;">¥${g.totalPrice}</td></tr>`)
+    .map((g) => `<tr><td style="padding:8px 0;border-bottom:1px solid rgba(28,25,22,0.08);">${escapeHtml(g.category1)}</td><td style="padding:8px 0;border-bottom:1px solid rgba(28,25,22,0.08);">¥${g.totalPrice}</td></tr>`)
     .join("");
 
   return `
@@ -42,32 +42,31 @@ function buildEmailHtml(report) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>今日报告 — 存货小管家</title>
 </head>
-<body style="margin:0;padding:0;background:#faf6f0;font-family:'PingFang SC',sans-serif;font-size:15px;color:#3d3630;line-height:1.5;">
-  <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
-    <div style="background:#fef9e7;border:1px solid #ddd6c8;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(61,54,48,0.06);position:relative;overflow:hidden;">
-      <div style="position:absolute;top:0;left:20px;right:20px;height:6px;background:rgba(228,196,168,0.6);border-radius:2px;"></div>
-      <p style="text-align:center;margin:0 0 12px;font-size:36px;">🐹</p>
-      <h1 style="margin:0 0 16px;font-size:1.25rem;font-weight:600;text-align:center;color:#3d3630;">今日报告</h1>
-      <p style="margin:0 0 16px;font-size:0.95rem;color:#6b635a;text-align:center;">存货小管家 · 保质期与库存提醒</p>
+<body style="margin:0;padding:0;background:#f4efe6;font-family:'PingFang SC','Noto Sans SC',sans-serif;font-size:16px;color:#1c1916;line-height:1.65;">
+  <div style="max-width:560px;margin:0 auto;padding:28px 16px;">
+    <div style="background:#fbf8f2;border:1px solid rgba(28,25,22,0.08);border-radius:18px;padding:28px 22px;">
+      <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.28em;color:#c45c38;text-align:center;">存货小管家</p>
+      <h1 style="margin:0 0 6px;font-size:26px;font-weight:600;text-align:center;letter-spacing:0.08em;color:#1c1916;">今日报告</h1>
+      <p style="margin:0 0 22px;font-size:13px;color:#8a8278;text-align:center;">保质期与库存提醒</p>
 
-      <div style="background:#fff;border-radius:8px;padding:14px;margin-bottom:16px;border-left:4px solid #c4a77d;">
-        <h2 style="margin:0 0 10px;font-size:1rem;color:#3d3630;">今日提醒</h2>
-        ${hasExpiring ? `<p style="margin:0 0 8px;font-weight:500;color:#c4a77d;">${escapeHtml(urging)}</p>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead><tr><th style="text-align:left;padding:8px 12px;color:#6b635a;">物品</th><th style="text-align:left;padding:8px 12px;color:#6b635a;">品类 · 品牌</th><th style="text-align:left;padding:8px 12px;color:#6b635a;">到期日</th></tr></thead>
+      <div style="border-top:2px solid #c45c38;padding-top:16px;margin-bottom:22px;">
+        <h2 style="margin:0 0 10px;font-size:18px;letter-spacing:0.08em;color:#1c1916;">今日提醒</h2>
+        ${hasExpiring ? `<p style="margin:0 0 12px;color:#c45c38;">${escapeHtml(urging)}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead><tr><th style="text-align:left;padding:8px 0;color:#8a8278;font-weight:500;">物品</th><th style="text-align:left;padding:8px 0;color:#8a8278;font-weight:500;">品类 · 品牌</th><th style="text-align:left;padding:8px 0;color:#8a8278;font-weight:500;">到期日</th></tr></thead>
           <tbody>${expiringRows}</tbody>
-        </table>` : `<p style="margin:0;color:#6b635a;">今天没有快过期的东西，真棒！</p>`}
+        </table>` : `<p style="margin:0;color:#5a534b;">今天没有快过期的东西，真棒！</p>`}
       </div>
 
-      <div style="background:#fff;border-radius:8px;padding:14px;border-left:4px solid #c4a77d;">
-        <h2 style="margin:0 0 10px;font-size:1rem;color:#3d3630;">货单总结 · ${weeksLabel}</h2>
-        <p style="margin:0 0 8px;font-size:12px;color:#6b635a;">进货</p>
-        ${newRows ? `<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="text-align:left;padding:6px 12px;color:#6b635a;">一级品类</th><th style="text-align:left;padding:6px 12px;color:#6b635a;">总价</th></tr></thead><tbody>${newRows}</tbody></table>` : "<p style=\"margin:0;color:#6b635a;\">暂无</p>"}
-        <p style="margin:12px 0 8px;font-size:12px;color:#6b635a;">消耗</p>
-        ${usedRows ? `<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="text-align:left;padding:6px 12px;color:#6b635a;">一级品类</th><th style="text-align:left;padding:6px 12px;color:#6b635a;">总价</th></tr></thead><tbody>${usedRows}</tbody></table>` : "<p style=\"margin:0;color:#6b635a;\">暂无</p>"}
+      <div style="border-top:1px solid rgba(28,25,22,0.08);padding-top:16px;">
+        <h2 style="margin:0 0 10px;font-size:18px;letter-spacing:0.08em;color:#1c1916;">货单总结 · ${weeksLabel}</h2>
+        <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.16em;color:#8a8278;">进货</p>
+        ${newRows ? `<table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr><th style="text-align:left;padding:6px 0;color:#8a8278;font-weight:500;">一级品类</th><th style="text-align:left;padding:6px 0;color:#8a8278;font-weight:500;">总价</th></tr></thead><tbody>${newRows}</tbody></table>` : "<p style=\"margin:0;color:#8a8278;\">暂无</p>"}
+        <p style="margin:16px 0 8px;font-size:12px;letter-spacing:0.16em;color:#8a8278;">消耗</p>
+        ${usedRows ? `<table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr><th style="text-align:left;padding:6px 0;color:#8a8278;font-weight:500;">一级品类</th><th style="text-align:left;padding:6px 0;color:#8a8278;font-weight:500;">总价</th></tr></thead><tbody>${usedRows}</tbody></table>` : "<p style=\"margin:0;color:#8a8278;\">暂无</p>"}
       </div>
 
-      <p style="margin:16px 0 0;font-size:12px;color:#6b635a;text-align:center;">— 存货小管家 · 手帐风保质期管理 —</p>
+      <p style="margin:22px 0 0;font-size:12px;color:#8a8278;text-align:center;letter-spacing:0.12em;">存货小管家</p>
     </div>
   </div>
 </body>
