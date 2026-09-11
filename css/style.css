@@ -27,8 +27,8 @@
   --header-h: 64px;
   --nav-h: 72px;
   --space: 20px;
-  --olive-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 140'%3E%3Cpath d='M86 16C70 46 62 78 58 124' fill='none' stroke='%233d5a43' stroke-width='1.35' stroke-linecap='round' opacity='.34'/%3E%3Cg fill='%233d5a43' opacity='.2'%3E%3Cellipse cx='70' cy='40' rx='12' ry='5.2' transform='rotate(-56 70 40)'/%3E%3Cellipse cx='94' cy='46' rx='12' ry='5.2' transform='rotate(48 94 46)'/%3E%3Cellipse cx='64' cy='66' rx='13' ry='5.6' transform='rotate(-50 64 66)'/%3E%3Cellipse cx='90' cy='72' rx='13' ry='5.6' transform='rotate(40 90 72)'/%3E%3Cellipse cx='62' cy='94' rx='12' ry='5.2' transform='rotate(-42 62 94)'/%3E%3Ccircle cx='78' cy='56' r='3.3'/%3E%3Ccircle cx='74' cy='80' r='3.1'/%3E%3C/g%3E%3C/svg%3E");
-  --olive-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'%3E%3Cg fill='%233d5a43' opacity='.11'%3E%3Cellipse cx='38' cy='48' rx='10' ry='4.2' transform='rotate(-38 38 48)'/%3E%3Cellipse cx='54' cy='54' rx='10' ry='4.2' transform='rotate(44 54 54)'/%3E%3Ccircle cx='46' cy='50' r='2.2'/%3E%3Cellipse cx='168' cy='92' rx='9' ry='3.8' transform='rotate(28 168 92)'/%3E%3Cellipse cx='182' cy='84' rx='9' ry='3.8' transform='rotate(-50 182 84)'/%3E%3Ccircle cx='176' cy='88' r='2'/%3E%3Cellipse cx='96' cy='168' rx='11' ry='4.4' transform='rotate(-24 96 168)'/%3E%3Cellipse cx='112' cy='176' rx='10' ry='4' transform='rotate(52 112 176)'/%3E%3Ccircle cx='104' cy='172' r='2.1'/%3E%3C/g%3E%3Cpath d='M46 62c4 14 6 26 6 40M176 98c-3 12-3 24-1 36M104 180c8 10 16 16 28 22' fill='none' stroke='%233d5a43' stroke-width='1.1' opacity='.1' stroke-linecap='round'/%3E%3C/svg%3E");
+  --olive-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 140'%3E%3Cpath d='M86 16C70 46 62 78 58 124' fill='none' stroke='%233d5a43' stroke-width='1.6' stroke-linecap='round' opacity='.42'/%3E%3Cg fill='%233d5a43' opacity='.36'%3E%3Cellipse cx='70' cy='40' rx='12' ry='5.2' transform='rotate(-56 70 40)'/%3E%3Cellipse cx='94' cy='46' rx='12' ry='5.2' transform='rotate(48 94 46)'/%3E%3Cellipse cx='64' cy='66' rx='13' ry='5.6' transform='rotate(-50 64 66)'/%3E%3Cellipse cx='90' cy='72' rx='13' ry='5.6' transform='rotate(40 90 72)'/%3E%3Cellipse cx='62' cy='94' rx='12' ry='5.2' transform='rotate(-42 62 94)'/%3E%3Ccircle cx='78' cy='56' r='3.3'/%3E%3Ccircle cx='74' cy='80' r='3.1'/%3E%3C/g%3E%3C/svg%3E");
+  --olive-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'%3E%3Cg fill='%233d5a43' opacity='.16'%3E%3Cellipse cx='38' cy='48' rx='10' ry='4.2' transform='rotate(-38 38 48)'/%3E%3Cellipse cx='54' cy='54' rx='10' ry='4.2' transform='rotate(44 54 54)'/%3E%3Ccircle cx='46' cy='50' r='2.2'/%3E%3Cellipse cx='168' cy='92' rx='9' ry='3.8' transform='rotate(28 168 92)'/%3E%3Cellipse cx='182' cy='84' rx='9' ry='3.8' transform='rotate(-50 182 84)'/%3E%3Ccircle cx='176' cy='88' r='2'/%3E%3Cellipse cx='96' cy='168' rx='11' ry='4.4' transform='rotate(-24 96 168)'/%3E%3Cellipse cx='112' cy='176' rx='10' ry='4' transform='rotate(52 112 176)'/%3E%3Ccircle cx='104' cy='172' r='2.1'/%3E%3C/g%3E%3Cpath d='M46 62c4 14 6 26 6 40M176 98c-3 12-3 24-1 36M104 180c8 10 16 16 28 22' fill='none' stroke='%233d5a43' stroke-width='1.1' opacity='.14' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 * {
@@ -280,8 +280,8 @@ body::before {
   background-color: var(--paper-raised);
   background-image: var(--olive-corner), var(--olive-tile);
   background-repeat: no-repeat, repeat;
-  background-position: calc(100% + 18px) -20px, 0 0;
-  background-size: 128px 150px, 220px 220px;
+  background-position: right -4px top -10px, 0 0;
+  background-size: 108px 126px, 220px 220px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px 20px;
@@ -321,8 +321,8 @@ body::before {
     ),
     var(--olive-tile);
   background-repeat: no-repeat, repeat, repeat;
-  background-position: calc(100% + 18px) -20px, 0 0, 40px 12px;
-  background-size: 132px 154px, auto, 220px 220px;
+  background-position: right -4px top -10px, 0 0, 40px 12px;
+  background-size: 112px 130px, auto, 220px 220px;
 }
 
 .notice-panel::before {
@@ -605,8 +605,8 @@ body::before {
   background-color: var(--paper-raised);
   background-image: var(--olive-corner), var(--olive-tile);
   background-repeat: no-repeat, repeat;
-  background-position: calc(100% + 16px) -22px, 12px 8px;
-  background-size: 118px 138px, 220px 220px;
+  background-position: right -6px top -12px, 12px 8px;
+  background-size: 96px 112px, 220px 220px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
@@ -771,8 +771,8 @@ body::before {
   background-color: var(--paper-raised);
   background-image: var(--olive-corner), var(--olive-tile);
   background-repeat: no-repeat, repeat;
-  background-position: calc(100% + 20px) -18px, 0 24px;
-  background-size: 136px 158px, 220px 220px;
+  background-position: right -4px top -8px, 0 24px;
+  background-size: 112px 130px, 220px 220px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 8px 20px 20px;
@@ -942,8 +942,8 @@ body::before {
   background-color: var(--paper-raised);
   background-image: var(--olive-corner), var(--olive-tile);
   background-repeat: no-repeat, repeat;
-  background-position: calc(100% + 12px) -16px, 0 0;
-  background-size: 120px 140px, 220px 220px;
+  background-position: right -4px top -8px, 0 0;
+  background-size: 104px 122px, 220px 220px;
   border-radius: 22px 22px 0 0;
   box-shadow: var(--shadow-modal);
 }
