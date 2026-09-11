@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
   const smtpPass = (process.env.SMTP_PASS || "").trim();
   const useGmail = smtpUser && smtpPass;
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM || "存货小管家 <onboarding@resend.dev>";
+  const fromEmail = process.env.RESEND_FROM || "Keeper <onboarding@resend.dev>";
 
   if (!useGmail && !apiKey) {
     return res.status(500).json({
@@ -47,7 +47,7 @@ module.exports = async (req, res) => {
   }
 
   const html = buildEmailHtml(report);
-  const subject = "今日报告 — 存货小管家";
+  const subject = "今日报告 — Keeper";
 
   try {
     if (useGmail) {
