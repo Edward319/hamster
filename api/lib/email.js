@@ -16,8 +16,10 @@ function escapeHtml(s) {
 }
 
 function buildEmailHtml(report) {
-  const { urging = "", summaryWeeks = 4, expiring = [], summaryNew = [], summaryUsed = [] } = report;
+  const { urging = "", summaryWeeks = 4, expiring = [], restock = [], summaryNew = [], summaryUsed = [] } = report;
   const hasExpiring = expiring.length > 0;
+  const hasRestock = Array.isArray(restock) && restock.length > 0;
+  const hasReminders = hasExpiring || hasRestock;
   const weeksLabel = summaryWeeks ? "过去 " + summaryWeeks + " 周" : "过去一个月";
   const rule = "1px solid rgba(61,90,67,0.16)";
   const muted = "#8a8374";
@@ -30,6 +32,14 @@ function buildEmailHtml(report) {
         `<tr><td style="padding:10px 0;border-bottom:${rule};">${escapeHtml(i.name)}</td>
 <td style="padding:10px 0;border-bottom:${rule};color:#5e584c;">${escapeHtml(i.brand)} · ${escapeHtml(i.category1)}/${escapeHtml(i.category2)}</td>
 <td style="padding:10px 0;border-bottom:${rule};">${escapeHtml(i.expiryDate)}</td></tr>`
+    )
+    .join("");
+  const restockRows = (restock || [])
+    .map(
+      (i) =>
+        `<tr><td style="padding:10px 0;border-bottom:${rule};">${escapeHtml(i.name)}</td>
+<td style="padding:10px 0;border-bottom:${rule};color:#5e584c;">${escapeHtml(i.brand)} · ${escapeHtml(i.category1)}/${escapeHtml(i.category2)}</td>
+<td style="padding:10px 0;border-bottom:${rule};color:${rust};">只剩 1 件 · 记得补货</td></tr>`
     )
     .join("");
   const newRows = summaryNew
@@ -57,11 +67,17 @@ function buildEmailHtml(report) {
 
       <div style="border-top:2px solid ${moss};padding-top:16px;margin-bottom:22px;">
         <h2 style="margin:0 0 10px;font-size:18px;letter-spacing:0.08em;color:${ink};">今日提醒</h2>
-        ${hasExpiring ? `<p style="margin:0 0 12px;color:${rust};">${escapeHtml(urging)}</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        ${hasReminders ? `<p style="margin:0 0 12px;color:${rust};">${escapeHtml(urging)}</p>
+        ${hasExpiring ? `<p style="margin:0 0 8px;font-size:12px;letter-spacing:0.16em;color:${muted};">临期提醒</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
           <thead><tr><th style="text-align:left;padding:8px 0;color:${muted};font-weight:500;">物品</th><th style="text-align:left;padding:8px 0;color:${muted};font-weight:500;">品类 · 品牌</th><th style="text-align:left;padding:8px 0;color:${muted};font-weight:500;">到期日</th></tr></thead>
           <tbody>${expiringRows}</tbody>
-        </table>` : `<p style="margin:0;color:#5e584c;">今天没有快过期的东西，真棒！</p>`}
+        </table>` : ""}
+        ${hasRestock ? `<p style="margin:0 0 8px;font-size:12px;letter-spacing:0.16em;color:${muted};">补货提醒</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead><tr><th style="text-align:left;padding:8px 0;color:${muted};font-weight:500;">物品</th><th style="text-align:left;padding:8px 0;color:${muted};font-weight:500;">品类 · 品牌</th><th style="text-align:left;padding:8px 0;color:${muted};font-weight:500;">状态</th></tr></thead>
+          <tbody>${restockRows}</tbody>
+        </table>` : ""}` : `<p style="margin:0;color:#5e584c;">今天没有快过期或需要补货的东西，真棒！</p>`}
       </div>
 
       <div style="border-top:1px solid rgba(61,90,67,0.16);padding-top:16px;">

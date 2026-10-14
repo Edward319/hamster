@@ -70,6 +70,31 @@
       } catch (e) {
         add("getAllItems", false, e.message);
       }
+
+      // 5. 补货提醒：在库余额为 1 时提醒，用完（余额 0）后不再提醒
+      try {
+        var key = "vibecoding_items";
+        var prev = localStorage.getItem(key);
+        localStorage.setItem(key, JSON.stringify([
+          { id: "r1", name: "猫粮", category1: "宠物", category2: "主粮", brand: "A", quantity: 1, purchaseDate: "2026-01-01", expiryDate: "2027-01-01", unitPrice: 10, status: "in_stock", remindBeforeDays: 30 },
+          { id: "r2", name: "纸巾", category1: "日用", category2: "纸品", brand: "B", quantity: 3, purchaseDate: "2026-01-01", expiryDate: "2027-01-01", unitPrice: 5, status: "in_stock", remindBeforeDays: 30 },
+          { id: "r3", name: "旧牙膏", category1: "日用", category2: "洗护", brand: "C", quantity: 0, purchaseDate: "2025-01-01", expiryDate: "2025-06-01", unitPrice: 8, status: "used_up", usedUpAt: "2026-01-02", remindBeforeDays: 30 }
+        ]));
+        var restock = typeof getRestockReminders === "function" ? getRestockReminders() : null;
+        assert(Array.isArray(restock), "getRestockReminders 返回数组");
+        assert(restock && restock.length === 1 && restock[0].name === "猫粮", "仅余额为 1 的在库 SKU 进入补货提醒");
+        assert(restock && restock.every(function (x) { return x.quantity === 1; }), "补货提醒条目 quantity 为 1");
+        // 同 SKU 多条合计 >1 时不提醒
+        localStorage.setItem(key, JSON.stringify([
+          { id: "a1", name: "牛奶", category1: "食品", category2: "奶", brand: "X", quantity: 1, purchaseDate: "2026-01-01", expiryDate: "2026-06-01", unitPrice: 10, status: "in_stock", remindBeforeDays: 30 },
+          { id: "a2", name: "牛奶", category1: "食品", category2: "奶", brand: "X", quantity: 1, purchaseDate: "2026-01-02", expiryDate: "2026-07-01", unitPrice: 10, status: "in_stock", remindBeforeDays: 30 }
+        ]));
+        restock = getRestockReminders();
+        assert(restock && restock.length === 0, "同 SKU 在库合计为 2 时不补货提醒");
+        if (prev == null) localStorage.removeItem(key); else localStorage.setItem(key, prev);
+      } catch (e) {
+        add("getRestockReminders", false, e.message);
+      }
     })();
   </script>
 </body>

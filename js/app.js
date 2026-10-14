@@ -1,5 +1,5 @@
 /**
- * 应用逻辑：导航、首页临期（按条 remindBeforeDays）、
+ * 应用逻辑：导航、首页临期（按条 remindBeforeDays）与补货提醒（在库余额=1）、
  * 库存卡片（SKU 聚合 + 按到期日展开）、用完了填数量、复制搜索、盖章
  */
 
@@ -63,11 +63,19 @@
   );
 
   // ---------- 首页：今日提醒（拟人化催促文案）+ 双周报 ----------
-  function getUrgingText(count) {
-    if (count === 0) return "";
-    if (count <= 2) return "有几样快到期啦，记得先用哦～";
-    if (count <= 5) return "快吃快用啊！别浪费！";
-    return "到期的东西太多了，快吃快用啊！别浪费！";
+  function getUrgingText(expiringCount, restockCount) {
+    const expiryN = Number(expiringCount) || 0;
+    const restockN = Number(restockCount) || 0;
+    const parts = [];
+    if (expiryN > 0) {
+      if (expiryN <= 2) parts.push("有几样快到期啦，记得先用哦～");
+      else if (expiryN <= 5) parts.push("快吃快用啊！别浪费！");
+      else parts.push("到期的东西太多了，快吃快用啊！别浪费！");
+    }
+    if (restockN > 0) {
+      parts.push(restockN === 1 ? "有一样只剩一件啦，记得补货～" : "有几样只剩一件啦，记得补货～");
+    }
+    return parts.join(" ");
   }
 
   function formatTodayLabel() {
@@ -92,58 +100,89 @@
     return "还剩 " + n + " 天";
   }
 
+  function renderExpiryCard(i) {
+    return (
+      '<article class="expiry-card">' +
+      '<div class="expiry-name">' +
+      escapeHtml(i.name) +
+      "</div>" +
+      '<div class="expiry-meta">' +
+      escapeHtml(i.brand) +
+      " · " +
+      escapeHtml(i.category1) +
+      " / " +
+      escapeHtml(i.category2) +
+      "</div>" +
+      '<div class="expiry-footer">' +
+      "<span>" +
+      escapeHtml(i.expiryDate) +
+      (i.remindBeforeDays ? " · 提前 " + escapeHtml(String(i.remindBeforeDays)) + " 天提醒" : "") +
+      "</span>" +
+      '<span class="expiry-remain">' +
+      escapeHtml(formatRemain(i.expiryDate)) +
+      "</span>" +
+      "</div></article>"
+    );
+  }
+
+  function renderRestockCard(i) {
+    return (
+      '<article class="expiry-card restock-card">' +
+      '<div class="expiry-name">' +
+      escapeHtml(i.name) +
+      '</div>' +
+      '<div class="expiry-meta">' +
+      escapeHtml(i.brand) +
+      " · " +
+      escapeHtml(i.category1) +
+      " / " +
+      escapeHtml(i.category2) +
+      "</div>" +
+      '<div class="expiry-footer">' +
+      "<span>在库余额 1</span>" +
+      '<span class="expiry-remain restock-remain">记得补货</span>' +
+      "</div></article>"
+    );
+  }
+
   function renderHome() {
     const list = document.getElementById("home-expiring-list");
     const emptyMsg = document.getElementById("home-empty-msg");
     const urgingMsg = document.getElementById("home-urging-msg");
     const dateEl = document.getElementById("home-date");
     if (dateEl) dateEl.textContent = formatTodayLabel();
-    const items = getExpiringItems();
+    const expiring = typeof getExpiringItems === "function" ? getExpiringItems() : [];
+    const restock = typeof getRestockReminders === "function" ? getRestockReminders() : [];
     list.innerHTML = "";
     emptyMsg.classList.add("hidden");
     urgingMsg.classList.add("hidden");
-    if (items.length === 0) {
+    if (expiring.length === 0 && restock.length === 0) {
       emptyMsg.classList.remove("hidden");
       list.innerHTML = "";
     } else {
-      const text = getUrgingText(items.length);
-      if (text) {
-        urgingMsg.textContent = text;
+      const urging = getUrgingText(expiring.length, restock.length);
+      if (urging) {
+        urgingMsg.textContent = urging;
         urgingMsg.classList.remove("hidden");
       }
-      list.innerHTML = items
-        .map(function (i) {
-          return (
-            '<article class="expiry-card">' +
-            '<div class="expiry-name">' +
-            escapeHtml(i.name) +
-            "</div>" +
-            '<div class="expiry-meta">' +
-            escapeHtml(i.brand) +
-            " · " +
-            escapeHtml(i.category1) +
-            " / " +
-            escapeHtml(i.category2) +
-            "</div>" +
-            '<div class="expiry-footer">' +
-            "<span>" +
-            escapeHtml(i.expiryDate) +
-            (i.remindBeforeDays ? " · 提前 " + escapeHtml(String(i.remindBeforeDays)) + " 天提醒" : "") +
-            "</span>" +
-            '<span class="expiry-remain">' +
-            escapeHtml(formatRemain(i.expiryDate)) +
-            "</span>" +
-            "</div></article>"
-          );
-        })
-        .join("");
+      const parts = [];
+      if (expiring.length > 0) {
+        parts.push('<p class="reminder-section-label">临期提醒</p>');
+        parts.push(expiring.map(renderExpiryCard).join(""));
+      }
+      if (restock.length > 0) {
+        parts.push('<p class="reminder-section-label">补货提醒</p>');
+        parts.push(restock.map(renderRestockCard).join(""));
+      }
+      list.innerHTML = parts.join("");
     }
     renderBiweekly();
   }
 
   function buildTodayReportPayload() {
     const expiring = getExpiringItems();
-    const urging = getUrgingText(expiring.length);
+    const restock = typeof getRestockReminders === "function" ? getRestockReminders() : [];
+    const urging = getUrgingText(expiring.length, restock.length);
     const past = getPastMonthStatsByCategory1();
     const settings = getSettings();
     return {
@@ -155,6 +194,13 @@
         category1: i.category1,
         category2: i.category2,
         expiryDate: i.expiryDate,
+      })),
+      restock: restock.map((i) => ({
+        name: i.name,
+        brand: i.brand,
+        category1: i.category1,
+        category2: i.category2,
+        quantity: 1,
       })),
       summaryNew: past.newEntries.map((g) => ({ category1: g.category1, totalPrice: g.totalPrice })),
       summaryUsed: past.used.map((g) => ({ category1: g.category1, totalPrice: g.totalPrice })),

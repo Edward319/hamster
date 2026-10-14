@@ -1,6 +1,6 @@
 /**
  * 数据层：货物 CRUD、品类、临期按条 remindBeforeDays、同 SKU+到期日合并、
- * 用完了按数量扣减、按 SKU 分组展示
+ * 用完了按数量扣减、按 SKU 分组展示、在库余额为 1 时补货提醒
  */
 
 const STORAGE_ITEMS = "vibecoding_items";
@@ -278,6 +278,24 @@ function getExpiringItems() {
     const before = typeof i.remindBeforeDays === "number" ? i.remindBeforeDays : DEFAULT_REMIND_DAYS;
     return daysLeft >= 0 && daysLeft <= before;
   });
+}
+
+/**
+ * 补货提醒：同一 SKU（名称+一级+二级+品牌）在库总数量恰好为 1 时提醒补货。
+ * 全部用完（在库余额为 0）则不再提醒——可能以后用不到了，不必补。
+ */
+function getRestockReminders() {
+  return getInventoryGroups("in_stock")
+    .filter((g) => Number(g.totalQty) === 1)
+    .map((g) => ({
+      name: g.name,
+      category1: g.category1,
+      category2: g.category2,
+      brand: g.brand,
+      quantity: 1,
+      expiryDate: g.expiryMin || "",
+    }))
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "zh"));
 }
 
 /** 未来 7 天内过期的在库货物（周报用） */

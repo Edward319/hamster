@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless：接收今日报告内容，发送邮件
  * 推荐 Gmail SMTP（可发往任意用户邮箱）；未配置则尝试 Resend（可能仅限验证过的收件人）。
- * POST /api/send-report  Body: { to: string, report: { urging, expiring[], summaryNew[], summaryUsed[], summaryWeeks } }
+ * POST /api/send-report  Body: { to: string, report: { urging, expiring[], restock[], summaryNew[], summaryUsed[], summaryWeeks } }
  */
 
 const { Resend } = require("resend");
