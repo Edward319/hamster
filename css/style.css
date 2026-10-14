@@ -414,6 +414,22 @@ body::before {
   letter-spacing: 0.04em;
 }
 
+.reminder-section-label {
+  margin: 14px 0 2px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+
+.reminder-section-label:first-child {
+  margin-top: 0;
+}
+
+.restock-remain {
+  color: var(--accent);
+}
+
+
 .home-send-email {
   margin: 18px 0 28px;
   display: flex;
